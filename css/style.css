@@ -1,0 +1,104 @@
+body{
+    /*background: none #444444;*/
+    background: 
+        url("images/wood.jpg");
+    background-repeat: repeat;
+    background-size: 500px 500px;
+    line-height: 170%;
+    
+    font-family: 'Roboto', sans-serif;
+}
+div{
+    display: block;
+}
+.clear{
+    clear: left;
+}
+
+
+.nav li{
+    float: left;
+    position: relative;
+    list-style: none outside none;
+    margin: 0 3px 0 3px;
+}
+.nav li:hover{
+    background-color: white;
+    color: #443333;
+}
+.nav{
+    margin-top: 110px;
+    border-radius: 1px;
+    background: #333333;
+    color: white;
+    display: block;
+    float: left;
+    padding-top: 2px;
+    width: 100%;
+    line-height: 30px;
+    border-bottom: 1px solid white;
+    box-shadow: 10px 10px 0 0 #00000081;
+    overflow: hidden;
+}
+.nav a{
+    color: inherit;
+    display: block;
+    padding: 0 15px 0 15px;
+    text-decoration: none;
+    background-color: transparent;
+}
+
+#pagecenter{
+    margin: 0 auto;
+    max-width: 1000px;
+    min-width: 1000px;
+}
+
+.m_header{
+    position: relative;
+    color: #888888;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    margin-bottom: 12px;
+    min-height: 50px;
+    height: auto !important;
+    padding-top: 25px;
+
+    background-image:url(none);
+    background-repeat: no-repeat;
+}
+
+.m_header div#logo h1{
+    font-size: 72px;
+    
+    text-shadow: 5px 5px 2px #00000081;
+}
+.m_header div#logo h1 a{
+    color: inherit;
+    font-weight:100;
+    text-decoration: none;
+    background-color: transparent;
+}
+
+.m_content{
+    margin-top: 12px;
+    background-color: #333333;
+    border-radius: 1px;
+    color: white;
+    padding: 12px 15px;
+    box-shadow: 10px 10px 0 0 #00000081;
+    text-align: center;
+}
+.m_content a{
+    color: inherit;
+    font-weight:bolder;
+}
+
+#logo{
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    color:white;
+    padding-top: 40px;
+    font-family: 'IM Fell DW Pica', serif;
+}
