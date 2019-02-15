@@ -1,7 +1,6 @@
 body{
-    /*background: none #444444;*/
-    background: 
-        url("images/wood.jpg");
+    background: none #444444;
+    
     background-repeat: repeat;
     background-size: 500px 500px;
     line-height: 170%;
@@ -94,11 +93,16 @@ div{
     font-weight:bolder;
 }
 
+@font-face {
+    font-family: 'Nexa';
+    src: url('assets/fonts/Nexa Bold.otf');
+}
+
 #logo{
     position: absolute;
     width: 100%;
     text-align: center;
     color:white;
     padding-top: 40px;
-    font-family: 'IM Fell DW Pica', serif;
+    font-family: 'Nexa', Nexa, sans-serif;
 }
