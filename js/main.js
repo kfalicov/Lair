@@ -6,6 +6,7 @@ let config = {
     width: 800,
     height: 600,
     parent: gamediv,
+    //scene: new ClassicMode() //use this to test specific scenes directly
     scene: [new MainMenu(), new ClassicMode()]
 };
 

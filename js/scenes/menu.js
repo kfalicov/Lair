@@ -16,10 +16,14 @@ class MainMenu extends Phaser.Scene {
         this.load.image('start_button', 'assets/images/menu/start_button.png');
         this.load.image('option_button', 'assets/images/menu/option_button.png');
         this.load.image('about_button', 'assets/images/menu/about_button.png');
+        this.load.image('cage', 'assets/images/menu/cage.png');
         this.load.image('menu_tint', 'assets/images/menu/menu_tint.png');
         this.load.image('cross_lasers', 'assets/images/menu/menu_lasers.png');
         this.load.image('close', 'assets/images/menu/close.png');
         this.load.image('aspect_narrower', 'assets/images/menu/aspect_narrower.png');
+
+        //laser shard particles
+        this.load.atlas('shards', 'assets/images/particle/shards.png', 'assets/images/particle/shards_atlas.json');
 
         //start submenu images
         this.load.image('laser_top', 'assets/images/menu/laser_top.png');
@@ -65,22 +69,20 @@ class MainMenu extends Phaser.Scene {
         this.title_gloss = this.add.sprite(170, 55, 'title_gloss').setOrigin(0);
         this.title_gloss.setBlendMode(Phaser.BlendModes.SCREEN);
         
-        this.startbutton = this.add.sprite(500, 250, 'start_button').setInteractive().setOrigin(0);
-        this.optionbuttonundertint = this.add.sprite(500, 320, 'option_button').setOrigin(0);
-        this.aboutbutton = this.add.sprite(500, 390, 'about_button').setInteractive().setOrigin(0);
+        this.startbutton = this.add.sprite(490, 250, 'start_button').setInteractive().setOrigin(0);
+        this.optionbutton = this.add.sprite(490, 320, 'option_button').setInteractive().setOrigin(0);
+        this.aboutbutton = this.add.sprite(490, 390, 'about_button').setInteractive().setOrigin(0);
+        
+        this.cage = this.add.sprite(15,157,'cage').setOrigin(0);
         
         this.menu_tint = this.add.sprite(0,0,'menu_tint').setOrigin(0).setInteractive();
         this.menu_tint.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
         this.title_spark = this.add.sprite(153,39, 'title_spark').setOrigin(0);
         this.title_spark.setBlendMode(Phaser.BlendModes.ADD);
-        this.cross_lasers = this.add.sprite(0,0,'cross_lasers').setOrigin(0).setBlendMode(Phaser.BlendModes.ADD);   
-        
-        //option button is a weird case since it has to be below the tint, but above the cross lasers.
-        //however, the cross lasers are above the tint. This is bypassed
-        //by having the physical button above, but once the menu is activated it is hidden and
-        //a different button is shown.
-        this.optionbutton = this.add.sprite(500, 320, 'option_button').setInteractive().setOrigin(0);
-        
+
+        this.cross_lasers = this.add.sprite(0,0,'cross_lasers').setOrigin(0).setBlendMode(Phaser.BlendModes.ADD);  
+        this.initLaserParticles();
+
         this.laser_top = this.add.sprite(0, 180, 'laser_top').setOrigin(0);
         this.laser_top.setBlendMode(Phaser.BlendModes.ADD);
         this.laser_mid = this.add.sprite(0, 230, 'laser_mid').setOrigin(0);
@@ -117,6 +119,82 @@ class MainMenu extends Phaser.Scene {
         this.menu_tint.setVisible(show);
         this.laser_bottom.setVisible(show);
         this.optionbutton.setVisible(!show);
+    }
+
+    initLaserParticles(){
+        let particles = this.add.particles('shards');
+        let cageparticles = this.add.particles('shards');
+        var triangle1 = new Phaser.Geom.Triangle(0,236, 608, 364, 0, 240);
+        var triangle2 = new Phaser.Geom.Triangle(93, 381, 800, 167, 800, 156);
+        var triangle3 = new Phaser.Geom.Triangle(461,0, 808, 315, 438,0);
+        var emitter = particles.createEmitter(
+            {
+                frame: ['shard_1', 'shard_2', 'shard_3'],
+                x:0, y:0,
+                speed: 20,
+                lifespan: 1100,
+                quantity: 80,
+                frequency: 100,
+                angle: {min: 175, max: 205},
+                scale: { start: 0.15, end: 0.0 },
+                blendMode: Phaser.BlendModes.ADD,
+                emitZone: {type: 'edge', source: triangle1, quantity: 80}
+            }
+        );
+        var emitter2 = cageparticles.createEmitter(
+            {
+                frame: ['shard_1', 'shard_2', 'shard_3'],
+                x:0, y:0,
+                speed: 25,
+                lifespan: 1200,
+                quantity: 100,
+                frequency: 100,
+                angle: {min: -8, max: -30},
+                scale: { start: 0.15, end: 0.0 },
+                blendMode: Phaser.BlendModes.ADD,
+                emitZone: {type: 'edge', source: triangle2, quantity: 100}
+            }
+        );
+        
+        var emitter3 = particles.createEmitter(
+            {
+                frame: ['shard_1', 'shard_2', 'shard_3'],
+                x:0, y:0,
+                speed: 30,
+                lifespan: 600,
+                quantity: 100,
+                frequency: 100,
+                angle: {min: -160, max: -120},
+                scale: { start: 0.2, end: 0.0 },
+                blendMode: Phaser.BlendModes.ADD,
+                emitZone: {type: 'edge', source: triangle3, quantity: 100}
+            }
+        );
+        var cagemask = new Phaser.Display.Masks.BitmapMask(this, this.cage);
+        cagemask.invertAlpha = true;
+        cageparticles.mask = cagemask;
+        
+        var optionmask = new Phaser.Display.Masks.BitmapMask(this, this.optionbutton);
+        optionmask.invertAlpha = true;
+        particles.mask = optionmask;
+        this.cross_lasers.mask = optionmask;
+
+        var line1 = new Phaser.Geom.Triangle(0,0, 800, 315);
+        this.startparticles = this.add.particles('shards');
+        var emitter3 = this.startparticles.createEmitter(
+            {
+                frame: ['shard_1', 'shard_2', 'shard_3'],
+                x:0, y:0,
+                speed: 30,
+                lifespan: 1600,
+                quantity: 100,
+                frequency: 100,
+               // angle: {min: -160, max: -120},
+                scale: { start: 1, end: 0.2 },
+                blendMode: Phaser.BlendModes.ADD,
+                emitZone: {type: 'edge', source: line1, quantity: 100}
+            }
+        );
     }
 }
 export default MainMenu;
