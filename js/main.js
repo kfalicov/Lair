@@ -6,10 +6,8 @@ let config = {
     width: 800,
     height: 600,
     parent: gamediv,
-    //scene: new ClassicMode() //use this to test specific scenes directly
-    scene: [new MainMenu(), new ClassicMode()]
+    //scene: ClassicMode //use this to test specific scenes directly
+    scene: [MainMenu, ClassicMode]
 };
 
 let game = new Phaser.Game(config);
-
-console.log(game.scene.keys);

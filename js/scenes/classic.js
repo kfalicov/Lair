@@ -34,9 +34,11 @@ class ClassicMode extends Phaser.Scene {
                 emitCallback: onEmits
             }
         );
-
+            function onEmits(particle, key){
+                console.log(`${particle}`);
+            }
         //changed to onEmits because I discovered Phaser has an onEmit somewhere already
-        function onEmits(particle, key) {
+       /*  function onEmits(particle, key) {
             const values = particle.emitter[key].propertyValue;
         
             // Handle a random value.
@@ -45,7 +47,7 @@ class ClassicMode extends Phaser.Scene {
             } else if (values.value) {
               particle[`${key}Initial`] = values.value;
             }
-          }
+          } */
     }
 }
 export default ClassicMode;

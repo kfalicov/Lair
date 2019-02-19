@@ -1,4 +1,4 @@
-import ClassicMode from "./classic.js";
+//import ClassicMode from "./classic.js";
 
 class MainMenu extends Phaser.Scene {
     constructor()
@@ -107,6 +107,7 @@ class MainMenu extends Phaser.Scene {
         //this.defense_button.setVisible(show);
         this.closebutton.setVisible(show);
         this.optionbutton.setVisible(!show);
+        this.startparticles.setVisible(show);
     }
 
     showOptionMenu(show){
@@ -179,22 +180,23 @@ class MainMenu extends Phaser.Scene {
         particles.mask = optionmask;
         this.cross_lasers.mask = optionmask;
 
-        var line1 = new Phaser.Geom.Triangle(0,0, 800, 315);
+        var line1 = new Phaser.Geom.Triangle(-460,320, 800, 231, 800, 312);
         this.startparticles = this.add.particles('shards');
         var emitter3 = this.startparticles.createEmitter(
             {
                 frame: ['shard_1', 'shard_2', 'shard_3'],
                 x:0, y:0,
-                speed: 30,
-                lifespan: 1600,
+                speed: 40,
+                lifespan: 1800,
                 quantity: 100,
                 frequency: 100,
-               // angle: {min: -160, max: -120},
-                scale: { start: 1, end: 0.2 },
+                angle: {min: -40, max: 40},
+                scale: { start: 1, end: 0.1 },
                 blendMode: Phaser.BlendModes.ADD,
                 emitZone: {type: 'edge', source: line1, quantity: 100}
             }
         );
+        
     }
 }
 export default MainMenu;
