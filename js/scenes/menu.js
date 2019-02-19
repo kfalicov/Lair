@@ -1,4 +1,4 @@
-import ClassicMode from "./classic";
+import ClassicMode from "./classic.js";
 
 class MainMenu extends Phaser.Scene {
     constructor()
