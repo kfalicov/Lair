@@ -17,7 +17,11 @@ class MainMenu extends Phaser.Scene {
         this.load.image('option_button', 'assets/images/menu/option_button.png');
         this.load.image('about_button', 'assets/images/menu/about_button.png');
         this.load.image('cage', 'assets/images/menu/cage.png');
+
         this.load.image('menu_tint', 'assets/images/menu/menu_tint.png');
+        this.load.image('menu_white', 'assets/images/menu/menu_white.png');
+        this.load.image('bubble_noise', 'assets/images/menu/bubble_noise.png');
+
         this.load.image('cross_lasers', 'assets/images/menu/menu_lasers.png');
         this.load.image('close', 'assets/images/menu/close.png');
         this.load.image('aspect_narrower', 'assets/images/menu/aspect_narrower.png');
@@ -26,7 +30,8 @@ class MainMenu extends Phaser.Scene {
         this.load.atlas('shards', 'assets/images/particle/shards.png', 'assets/images/particle/shards_atlas.json');
 
         //start submenu images
-        this.load.image('laser_top', 'assets/images/menu/laser_top.png');
+        this.load.image('laser_top_bg', 'assets/images/menu/laser_top_bg.png');
+        this.load.image('laser_top_fg', 'assets/images/menu/laser_top_fg.png')
         this.load.image('classic_button', 'assets/images/menu/classic_button.png');
         this.load.image('puzzle_button', 'assets/images/menu/puzzle_button.png');
         this.load.image('defense_button', 'assets/images/menu/defense_button.png');
@@ -51,7 +56,14 @@ class MainMenu extends Phaser.Scene {
         //this.initOptionMenu();
         //this.initAboutMenu();
 
-        
+        this.beam_bubbles = this.add.tileSprite(400,300,800, 600, 'bubble_noise')
+        this.beam_bubbles.angle = -2.5;
+        this.beam_bubbles.scaleX = 10;
+        this.beam_bubbles.scaleY = 0.5;
+        this.laser_top_fg.mask = new Phaser.Display.Masks.BitmapMask(this, this.beam_bubbles);
+        this.laser_top_fg.mask.invertAlpha = true;
+        this.beam_bubbles.setVisible(false);
+
         this.startbutton.on('pointerup', function(){this.showStartMenu(true);}, this);
         this.optionbutton.on('pointerup', function(){this.showOptionMenu(true);}, this);
         this.aboutbutton.on('pointerup', function(){this.showAboutMenu(true);}, this);
@@ -64,9 +76,15 @@ class MainMenu extends Phaser.Scene {
         }, this);
     }
 
+    update()
+    {
+        this.beam_bubbles.tilePositionX -= 1;
+        this.beam_bubbles.tilePositionY += 0.12;
+    }
+
     initMenu(){
-        this.title = this.add.sprite(170, 55, 'title').setOrigin(0);
-        this.title_gloss = this.add.sprite(170, 55, 'title_gloss').setOrigin(0);
+        this.title = this.add.sprite(210, 70, 'title').setOrigin(0);
+        this.title_gloss = this.add.sprite(210, 70, 'title_gloss').setOrigin(0);
         this.title_gloss.setBlendMode(Phaser.BlendModes.SCREEN);
         
         this.startbutton = this.add.sprite(490, 250, 'start_button').setInteractive().setOrigin(0);
@@ -77,14 +95,17 @@ class MainMenu extends Phaser.Scene {
         
         this.menu_tint = this.add.sprite(0,0,'menu_tint').setOrigin(0).setInteractive();
         this.menu_tint.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
-        this.title_spark = this.add.sprite(153,39, 'title_spark').setOrigin(0);
+        this.title_spark = this.add.sprite(193,54, 'title_spark').setOrigin(0);
         this.title_spark.setBlendMode(Phaser.BlendModes.ADD);
 
         this.cross_lasers = this.add.sprite(0,0,'cross_lasers').setOrigin(0).setBlendMode(Phaser.BlendModes.ADD);  
+        
         this.initLaserParticles();
 
-        this.laser_top = this.add.sprite(0, 180, 'laser_top').setOrigin(0);
-        this.laser_top.setBlendMode(Phaser.BlendModes.ADD);
+        this.laser_top_bg = this.add.sprite(0, 180, 'laser_top_bg').setOrigin(0);
+        this.laser_top_bg.setBlendMode(Phaser.BlendModes.ADD);
+        this.laser_top_fg = this.add.sprite(0, 180, 'laser_top_fg').setOrigin(0);
+        this.laser_top_fg.setBlendMode(Phaser.BlendModes.ADD);
         this.laser_mid = this.add.sprite(0, 230, 'laser_mid').setOrigin(0);
         this.laser_mid.setBlendMode(Phaser.BlendModes.ADD);
         this.laser_bottom = this.add.sprite(0, 290, 'laser_bottom').setOrigin(0);
@@ -101,13 +122,14 @@ class MainMenu extends Phaser.Scene {
 
     showStartMenu(show){
         this.menu_tint.setVisible(show);
-        this.laser_top.setVisible(show);
+        this.laser_top_fg.setVisible(show);
+        this.laser_top_bg.setVisible(show);
         this.classic_button.setVisible(show);
         this.puzzle_button.setVisible(show);
         //this.defense_button.setVisible(show);
         this.closebutton.setVisible(show);
         this.optionbutton.setVisible(!show);
-        this.startparticles.setVisible(show);
+        this.start_mask.setVisible(show);
     }
 
     showOptionMenu(show){
@@ -125,6 +147,11 @@ class MainMenu extends Phaser.Scene {
     initLaserParticles(){
         let particles = this.add.particles('shards');
         let cageparticles = this.add.particles('shards');
+        let startparticles = this.add.particles('shards');
+        this.start_mask = this.add.sprite(0,0,'menu_white').setOrigin(0);
+        this.start_mask.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
+        this.start_mask.alpha = 0.7;
+        this.start_mask.setBlendMode(Phaser.BlendModes.ADD);
         var triangle1 = new Phaser.Geom.Triangle(0,236, 608, 364, 0, 240);
         var triangle2 = new Phaser.Geom.Triangle(93, 381, 800, 167, 800, 156);
         var triangle3 = new Phaser.Geom.Triangle(461,0, 808, 315, 438,0);
@@ -181,8 +208,7 @@ class MainMenu extends Phaser.Scene {
         this.cross_lasers.mask = optionmask;
 
         var line1 = new Phaser.Geom.Triangle(-460,320, 800, 231, 800, 312);
-        this.startparticles = this.add.particles('shards');
-        var emitter3 = this.startparticles.createEmitter(
+        var emitter3 = startparticles.createEmitter(
             {
                 frame: ['shard_1', 'shard_2', 'shard_3'],
                 x:0, y:0,
@@ -196,7 +222,9 @@ class MainMenu extends Phaser.Scene {
                 emitZone: {type: 'edge', source: line1, quantity: 100}
             }
         );
-        
+        this.start_mask.mask = new Phaser.Display.Masks.BitmapMask(this, startparticles);
+        startparticles.setVisible(false);
+        this.start_mask.setVisible(false);
     }
 }
 export default MainMenu;
