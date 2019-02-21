@@ -29,7 +29,7 @@ class MainMenu extends Phaser.Scene {
         //laser shard particles
         this.load.atlas('shards', 'assets/images/particle/shards.png', 'assets/images/particle/shards_atlas.json');
 
-        //start submenu images
+        //'start' submenu images
         this.load.image('laser_top_bg', 'assets/images/menu/laser_top_bg.png');
         this.load.image('laser_top_fg', 'assets/images/menu/laser_top_fg.png')
         this.load.image('classic_button', 'assets/images/menu/classic_button.png');
@@ -37,10 +37,12 @@ class MainMenu extends Phaser.Scene {
         this.load.image('defense_button', 'assets/images/menu/defense_button.png');
     
         //option submenu images
-        this.load.image('laser_mid', 'assets/images/menu/laser_mid.png');
+        this.load.image('laser_mid_bg', 'assets/images/menu/laser_mid_bg.png');
+        this.load.image('laser_mid_fg', 'assets/images/menu/laser_mid_fg.png')
 
         //about submenu images
-        this.load.image('laser_bottom', 'assets/images/menu/laser_bottom.png');
+        this.load.image('laser_bot_bg', 'assets/images/menu/laser_bot_bg.png');
+        this.load.image('laser_bot_fg', 'assets/images/menu/laser_bot_fg.png')
     }
     create()
     {   
@@ -56,30 +58,28 @@ class MainMenu extends Phaser.Scene {
         //this.initOptionMenu();
         //this.initAboutMenu();
 
-        this.beam_bubbles = this.add.tileSprite(400,300,800, 600, 'bubble_noise')
-        this.beam_bubbles.angle = -2.5;
-        this.beam_bubbles.scaleX = 10;
-        this.beam_bubbles.scaleY = 0.5;
-        this.laser_top_fg.mask = new Phaser.Display.Masks.BitmapMask(this, this.beam_bubbles);
-        this.laser_top_fg.mask.invertAlpha = true;
-        this.beam_bubbles.setVisible(false);
-
         this.startbutton.on('pointerup', function(){this.showStartMenu(true);}, this);
         this.optionbutton.on('pointerup', function(){this.showOptionMenu(true);}, this);
         this.aboutbutton.on('pointerup', function(){this.showAboutMenu(true);}, this);
 
         this.classic_button.on('pointerup', function(){this.scene.start('ClassicMode')},this);
+        
         this.menu_tint.on('pointerup', function(){
             this.showStartMenu(false);
             this.showOptionMenu(false);
             this.showAboutMenu(false);
         }, this);
+
+        this.elapsed = 0;
     }
 
     update()
     {
-        this.beam_bubbles.tilePositionX -= 1;
-        this.beam_bubbles.tilePositionY += 0.12;
+        this.beam_bubbles.tilePositionX -= 2;
+        this.beam_bubbles.tilePositionY += 0.24;
+        this.title_spark.alpha = 0.15*Math.sin(this.elapsed)+0.75;
+        this.title_spark.alpha += Math.random()*0.1;
+        this.elapsed += 0.05;
     }
 
     initMenu(){
@@ -102,14 +102,34 @@ class MainMenu extends Phaser.Scene {
         
         this.initLaserParticles();
 
+        //the laser that appears when you click 'start'
         this.laser_top_bg = this.add.sprite(0, 180, 'laser_top_bg').setOrigin(0);
         this.laser_top_bg.setBlendMode(Phaser.BlendModes.ADD);
         this.laser_top_fg = this.add.sprite(0, 180, 'laser_top_fg').setOrigin(0);
         this.laser_top_fg.setBlendMode(Phaser.BlendModes.ADD);
-        this.laser_mid = this.add.sprite(0, 230, 'laser_mid').setOrigin(0);
-        this.laser_mid.setBlendMode(Phaser.BlendModes.ADD);
-        this.laser_bottom = this.add.sprite(0, 290, 'laser_bottom').setOrigin(0);
-        this.laser_bottom.setBlendMode(Phaser.BlendModes.ADD);
+
+        //the laser that appears when you click 'options'
+        this.laser_mid_bg = this.add.sprite(0, 230, 'laser_mid_bg').setOrigin(0);
+        this.laser_mid_bg.setBlendMode(Phaser.BlendModes.ADD);
+        this.laser_mid_fg = this.add.sprite(0, 230, 'laser_mid_fg').setOrigin(0);
+        this.laser_mid_fg.setBlendMode(Phaser.BlendModes.ADD);
+
+        //the laser that appears when you click 'about'
+        this.laser_bot_bg = this.add.sprite(0, 290, 'laser_bot_bg').setOrigin(0);
+        this.laser_bot_bg.setBlendMode(Phaser.BlendModes.ADD);
+        this.laser_bot_fg = this.add.sprite(0, 290, 'laser_bot_fg').setOrigin(0);
+        this.laser_bot_fg.setBlendMode(Phaser.BlendModes.ADD);
+
+        //the beam's imperfections
+        this.beam_bubbles = this.add.tileSprite(400,300,800, 600, 'bubble_noise');
+        this.beam_bubbles.scaleX = 10;
+        this.beam_bubbles.scaleY = 0.5;
+        let imperfectionmask = new Phaser.Display.Masks.BitmapMask(this, this.beam_bubbles);
+        imperfectionmask.invertAlpha = true;
+        this.laser_top_fg.mask = imperfectionmask;
+        this.laser_mid_fg.mask = imperfectionmask;
+        this.laser_bot_fg.mask = imperfectionmask;
+        this.beam_bubbles.setVisible(false);
         
         this.classic_button = this.add.sprite(100, 280, 'classic_button').setInteractive().setOrigin(0);
         this.puzzle_button = this.add.sprite(300, 270, 'puzzle_button').setInteractive().setOrigin(0);
@@ -122,8 +142,14 @@ class MainMenu extends Phaser.Scene {
 
     showStartMenu(show){
         this.menu_tint.setVisible(show);
-        this.laser_top_fg.setVisible(show);
+
+        //sets the angle of the imperfections
+        //the same imperfections animation is used for all
+        //of the menu lasers, so must be set independently for each when visible
+        this.beam_bubbles.angle = -2.5;
+
         this.laser_top_bg.setVisible(show);
+        this.laser_top_fg.setVisible(show);
         this.classic_button.setVisible(show);
         this.puzzle_button.setVisible(show);
         //this.defense_button.setVisible(show);
@@ -134,24 +160,25 @@ class MainMenu extends Phaser.Scene {
 
     showOptionMenu(show){
         this.menu_tint.setVisible(show);
-        this.laser_mid.setVisible(show);
+
+        this.beam_bubbles.angle = 181;
+        this.laser_mid_bg.setVisible(show);
+        this.laser_mid_fg.setVisible(show);
         this.optionbutton.setVisible(!show);
     }
 
     showAboutMenu(show){
         this.menu_tint.setVisible(show);
-        this.laser_bottom.setVisible(show);
+
+        this.beam_bubbles.angle = 2;
+        this.laser_bot_bg.setVisible(show);
+        this.laser_bot_fg.setVisible(show);
         this.optionbutton.setVisible(!show);
     }
 
     initLaserParticles(){
         let particles = this.add.particles('shards');
         let cageparticles = this.add.particles('shards');
-        let startparticles = this.add.particles('shards');
-        this.start_mask = this.add.sprite(0,0,'menu_white').setOrigin(0);
-        this.start_mask.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
-        this.start_mask.alpha = 0.7;
-        this.start_mask.setBlendMode(Phaser.BlendModes.ADD);
         var triangle1 = new Phaser.Geom.Triangle(0,236, 608, 364, 0, 240);
         var triangle2 = new Phaser.Geom.Triangle(93, 381, 800, 167, 800, 156);
         var triangle3 = new Phaser.Geom.Triangle(461,0, 808, 315, 438,0);
@@ -207,6 +234,12 @@ class MainMenu extends Phaser.Scene {
         particles.mask = optionmask;
         this.cross_lasers.mask = optionmask;
 
+        //the particles for the 'start' beam
+        let startparticles = this.add.particles('shards');
+        this.start_mask = this.add.sprite(0,0,'menu_white').setOrigin(0);
+        this.start_mask.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
+        this.start_mask.alpha = 0.7;
+        this.start_mask.setBlendMode(Phaser.BlendModes.ADD);
         var line1 = new Phaser.Geom.Triangle(-460,320, 800, 231, 800, 312);
         var emitter3 = startparticles.createEmitter(
             {

@@ -6,7 +6,10 @@ class ClassicMode extends Phaser.Scene {
 
     preload()
     {
-        this.load.atlas('shards', 'assets/images/particle/shards.png', 'assets/images/particle/shards_atlas.json');
+        this.load.image('room', 'assets/images/classic/room.png');
+        this.load.image('laser', 'assets/images/classic/laser.png');
+        this.load.image('item_box', 'assets/images/classic/item_box.png');
+        this.load.image('info_button', 'assets/images/classic/info_button.png');
     }
 
     create()
@@ -17,37 +20,25 @@ class ClassicMode extends Phaser.Scene {
         }, this);
         this.add.text(0,0, 'Classic Mode Scene');
 
-        let m_particles = this.add.particles('shards');
-        var line = new Phaser.Geom.Line(-100,-100, 100, 100);
-        var m_emitter = m_particles.createEmitter(
-            {
-                frame: ['shard_2'],
-                x:400, y:400,
-                speed: 60,
-                lifespan: 1500,
-                quantity: 30,
-                frequency: 200,
-                scale: { start: 0.8, end: 0.0 },
-                blendMode: Phaser.BlendModes.ADD,
-                emitZone: {type: 'edge', source: line, quantity: 30},
-                rotation: {min:0, max:180},
-                emitCallback: onEmits
-            }
-        );
-            function onEmits(particle, key){
-                console.log(`${particle}`);
-            }
-        //changed to onEmits because I discovered Phaser has an onEmit somewhere already
-       /*  function onEmits(particle, key) {
-            const values = particle.emitter[key].propertyValue;
-        
-            // Handle a random value.
-            if (typeof values.value === 'object') {
-              particle[`${key}Initial`] = randomBetween(values.value.min, values.value.max);
-            } else if (values.value) {
-              particle[`${key}Initial`] = values.value;
-            }
-          } */
+        let room = this.add.image(40,60,'room').setOrigin(0).setInteractive();
+        room.input.hitArea.setTo(10, 10, 700, 460);
+    
+        this.laserGrid = this.physics.add.staticGroup();
+        room.on('pointerdown', function (pointer) {
+
+            console.log(pointer.x, pointer.y);
+            let laser = this.add.tileSprite(40, pointer.y, 720,10, 'laser').setOrigin(0,0.5);
+            laser.laserSpeed = Math.random()+0.75;
+            this.laserGrid.add(laser);
+        }, this);
+        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
+        this.add.image(40,543, 'info_button').setOrigin(0);
+    }
+    update()
+    {
+        this.laserGrid.children.each(function(laser){
+            laser.tilePositionX +=laser.laserSpeed;
+        }, this);
     }
 }
 export default ClassicMode;
