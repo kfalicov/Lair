@@ -1,4 +1,34 @@
-//import ClassicMode from "./classic.js";
+// ###################################"
+
+var DistortPipeline = new Phaser.Class({
+
+    Extends: Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline,
+
+    initialize:
+
+    function DistortPipeline (game)
+    {
+        Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline.call(this, {
+            game: game,
+            renderer: game.renderer,
+            fragShader: `
+            precision mediump float;
+            uniform float     time;
+            uniform vec2      resolution;
+            uniform sampler2D uMainSampler;
+            varying vec2 outTexCoord;
+            void main( void ) {
+                vec2 uv = outTexCoord;
+                //uv.y *= -1.0;
+                uv.x += (sin((uv.y + (time * 0.1)) * 20.0) * 0.001) + (sin((uv.x + (time * 0.2)) * 15.0) * 0.002) + (sin((uv.y + (time * 0.05)) * 32.0) * 0.002) + (sin((uv.y + (time * 0.05)) * 131.0) * 0.001);
+                uv.y += (sin((uv.x + (time * 0.5)) * 12.0) * 0.002) + (sin((uv.x + (time * 0.01)) * 64.0) * 0.003) + (sin((uv.x - (time * 0.05)) * 170.0) * 0.001);;
+                vec4 texColor = texture2D(uMainSampler, uv);
+                gl_FragColor = texColor;
+            }`
+        });
+    } 
+
+});
 
 class MainMenu extends Phaser.Scene {
     constructor()
@@ -11,8 +41,12 @@ class MainMenu extends Phaser.Scene {
         //backdrop and default buttons
         this.load.image('menu_background', 'assets/images/menu/menu_background.png');
         this.load.image('title', 'assets/images/menu/title.png');
-        this.load.image('title_gloss', 'assets/images/menu/title_gloss.png');        this.load.image('title_gloss', 'assets/images/menu/title_gloss.png');
-        this.load.image('title_spark', 'assets/images/menu/title_spark.png');
+        this.load.image('title_gloss', 'assets/images/menu/title_gloss.png');        
+        this.load.image('title_gloss', 'assets/images/menu/title_gloss.png');
+
+        this.load.image('title_spark_bg', 'assets/images/menu/title_spark_bg.png');
+        this.load.image('title_spark_fg', 'assets/images/menu/title_spark_fg.png');
+
         this.load.image('start_button', 'assets/images/menu/start_button.png');
         this.load.image('option_button', 'assets/images/menu/option_button.png');
         this.load.image('about_button', 'assets/images/menu/about_button.png');
@@ -49,8 +83,6 @@ class MainMenu extends Phaser.Scene {
         let background = this.add.sprite(0, 0, 'menu_background');
         background.setOrigin(0, 0);
         
-        
-        
         this.initMenu();
         this.showStartMenu(false);
         this.showOptionMenu(false);
@@ -70,16 +102,25 @@ class MainMenu extends Phaser.Scene {
             this.showAboutMenu(false);
         }, this);
 
-        this.elapsed = 0;
+        var cam1 = this.cameras.main;
+        var cam2 = this.cameras.add(0,0,800,600);
+
+        this.t = 0; // time variable for the distor shader
+        this.tIncrement = 0.005;
+        this.distortPipeline = this.sys.game.renderer.addPipeline('Distort', new DistortPipeline(this.sys.game));
+        this.distortPipeline.setFloat2('resolution', this.game.config.width, this.game.config.height);
+        
+        //cam2.setRenderToTexture(this.distortPipeline);
     }
 
     update()
     {
+        this.t+=this.tIncrement;
+        this.distortPipeline.setFloat1('time', this.t);
         this.beam_bubbles.tilePositionX -= 2;
         this.beam_bubbles.tilePositionY += 0.24;
-        this.title_spark.alpha = 0.15*Math.sin(this.elapsed)+0.75;
-        this.title_spark.alpha += Math.random()*0.1;
-        this.elapsed += 0.05;
+        this.title_spark_bg.alpha = 0.15*Math.sin(this.time.now*(Math.random()*0.001)+0.001)+0.75;
+        //this.title_spark.alpha += Math.random()*0.1;
     }
 
     initMenu(){
@@ -95,8 +136,12 @@ class MainMenu extends Phaser.Scene {
         
         this.menu_tint = this.add.sprite(0,0,'menu_tint').setOrigin(0).setInteractive();
         this.menu_tint.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
-        this.title_spark = this.add.sprite(193,54, 'title_spark').setOrigin(0);
-        this.title_spark.setBlendMode(Phaser.BlendModes.ADD);
+
+        //the laser in the "A" of LAIR
+        this.title_spark_bg = this.add.sprite(193,54, 'title_spark_bg').setOrigin(0);
+        this.title_spark_bg.setBlendMode(Phaser.BlendModes.ADD);
+        this.title_spark_fg = this.add.sprite(193,54, 'title_spark_fg').setOrigin(0);
+        this.title_spark_fg.setBlendMode(Phaser.BlendModes.ADD);
 
         this.cross_lasers = this.add.sprite(0,0,'cross_lasers').setOrigin(0).setBlendMode(Phaser.BlendModes.ADD);  
         
@@ -154,7 +199,6 @@ class MainMenu extends Phaser.Scene {
         this.puzzle_button.setVisible(show);
         //this.defense_button.setVisible(show);
         this.closebutton.setVisible(show);
-        this.optionbutton.setVisible(!show);
         this.start_mask.setVisible(show);
     }
 
@@ -173,7 +217,6 @@ class MainMenu extends Phaser.Scene {
         this.beam_bubbles.angle = 2;
         this.laser_bot_bg.setVisible(show);
         this.laser_bot_fg.setVisible(show);
-        this.optionbutton.setVisible(!show);
     }
 
     initLaserParticles(){
