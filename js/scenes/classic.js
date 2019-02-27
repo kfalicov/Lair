@@ -10,10 +10,10 @@ var directions = {
         //it must be redirected back in the -in direction (accomplished using modulo)
         let outputdir = this.NONE;
         if(mirror.direction[0]===laser.direction){
-            console.log(mirror.direction[1]);
+            //console.log(mirror.direction[1]);
             outputdir = mirror.direction[1];
         }else if((mirror.direction[1]+2)%4===laser.direction){
-            console.log((mirror.direction[0]+2)%4);
+            //console.log((mirror.direction[0]+2)%4);
             outputdir = (mirror.direction[0]+2)%4;
         }else{
             //console.log('laser is blocked by this');
@@ -76,7 +76,7 @@ class ClassicMode extends Phaser.Scene {
 
     destroyLaser(laser){
         if(laser.child){
-            destroyLaser(laser.child);
+            this.destroyLaser(laser.child);
         }
         laser.destroy();
     }
@@ -105,7 +105,7 @@ class ClassicMode extends Phaser.Scene {
             //after all obstacle checks are done, this ensures the laser body is at its final size
             //and the last mirror touched is the relevant data
             if(data && data.direction!=directions.NONE){
-                console.log('reflected');
+                //console.log('reflected');
                 laser.child = this.makeLaserRecursive(room, data, textureKey, data.direction, data.mirror);
             }
             //all lasers are below all items
@@ -139,7 +139,9 @@ class ClassicMode extends Phaser.Scene {
 
     makeItem(room, pointer, textureKey, type){
         //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
-        let item = this.add.sprite(pointer.x, pointer.y, textureKey);
+        let item = this.add.sprite(pointer.x, pointer.y, textureKey).setInteractive();
+        item.input.hitArea.setTo(-5, -5, item.width+10, item.height+10);
+        item.on('pointerdown', function(){console.log('mirror click')},this);
         this.mirrors.add(item);
         item.body.position = {x:item.x-9, y:item.y-9}
         item.body.height = 18;
@@ -166,7 +168,7 @@ class ClassicMode extends Phaser.Scene {
                 this.destroyLaser(laser.child);
             }
             if(data && data.direction!=directions.NONE){
-                console.log('reflected');
+                //console.log('reflected');
                 laser.child = this.makeLaserRecursive(room, data, laser.displayTexture.key, data.direction, item);
             }
         }, null, this);
@@ -186,22 +188,37 @@ class ClassicMode extends Phaser.Scene {
         //console.log(room.getTopLeft().x);
         room.input.hitArea.setTo(10, 10, 700, 460);
         
-    
+        function getNext(percent, dir){
+            let incoming=["from north", "from east", "from south", "from west"];
+            let outgoing=[" to south", " to west", " to north", " to east"];
+            let output;
+            if(percent<=0.6){
+                output = "laser " + incoming[dir] + outgoing[dir];
+            }else{
+                output = "mirror " + incoming[dir] + outgoing[(dir+3)%4];
+            }
+            return output;
+        }
+
         this.laserGrid = this.physics.add.staticGroup();
         this.mirrors = this.physics.add.staticGroup();
-        let i=4;
+        let percent=Math.random();
+        let dir=Phaser.Math.Between(0,3);
+        
         room.on('pointerdown', function (pointer) {
-            if(i<4){
-                //i can be 0,1,2, or 3 representing the 4 compass directions
-                let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, 'laser', i);
-                console.log(laser);
+            if(percent<=0.6){
+                let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, 'laser', dir);
+                //console.log(laser);
             }else{
-                let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', 1);
+                let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', dir);
             }
-            i=(i+1)%6;
-            
+
+            percent=Math.random();
+            dir=Phaser.Math.Between(0,3);
+            console.log(getNext(percent,dir));
         }, this);
         
+
         
         this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
         this.add.image(40,543, 'info_button').setOrigin(0);
@@ -246,13 +263,20 @@ class ClassicMode extends Phaser.Scene {
             //this.shaderPipeline.setFloat2('mouse', pointer.x, pointer.y);
     
         }, this);
+        console.log(getNext(percent,dir));
+        this.animdirs=[
+            {x:0,y:-0.5},
+            {x:0.5,y:0},
+            {x:0,y:0.5},
+            {x:-0.5,y:0}
+        ];
     }
     update()
     {       
         this.shaderPipeline.setFloat1('time', this.time.now);
         this.laserGrid.children.each(function(laser){
-            //laser.tilePositionX -= laser.laserSpeed.x;
-            //laser.tilePositionY -= laser.laserSpeed.y;
+            laser.tilePositionY += this.animdirs[laser.direction].y;
+            laser.tilePositionX += this.animdirs[laser.direction].x;
         }, this);
     }
 }
