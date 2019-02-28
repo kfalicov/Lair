@@ -9,11 +9,11 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            debug:true
+            //debug:true
         }
     },
-    scene: ClassicMode //use this to test specific scenes directly
-    //scene: [MainMenu, ClassicMode]
+    //scene: ClassicMode //use this to test specific scenes directly
+    scene: [MainMenu, ClassicMode]
 };
 
 let game = new Phaser.Game(config);

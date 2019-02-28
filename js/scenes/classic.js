@@ -140,8 +140,17 @@ class ClassicMode extends Phaser.Scene {
     makeItem(room, pointer, textureKey, type){
         //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
         let item = this.add.sprite(pointer.x, pointer.y, textureKey).setInteractive();
+        item.on('pointerdown', function(pointer){
+            if(this.nextPercent<=0.6){
+                let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, 'laser', this.nextDir);
+                this.nextPercent=Math.random();
+                this.nextDir=Phaser.Math.Between(0,3);
+                console.log(this.getNextItem());
+            }else{
+                console.log('unable to place mirror near other mirror');
+            }
+        }, this);
         item.input.hitArea.setTo(-5, -5, item.width+10, item.height+10);
-        item.on('pointerdown', function(){console.log('mirror click')},this);
         this.mirrors.add(item);
         item.body.position = {x:item.x-9, y:item.y-9}
         item.body.height = 18;
@@ -177,6 +186,29 @@ class ClassicMode extends Phaser.Scene {
         return item;
     }
 
+    
+    getNextItem(){
+        let incoming=["from north", "from east", "from south", "from west"];
+        let outgoing=[" to south", " to west", " to north", " to east"];
+        let output;
+            if(this.nextPercent<=0.6){
+                output = "laser " + incoming[this.nextDir] + outgoing[this.nextDir];
+            }else{
+                output = "mirror " + incoming[this.nextDir] + outgoing[(this.nextDir+3)%4];
+            }
+        return output;
+    }
+    placeObject(room, pointer){
+        if(this.nextPercent<=0.6){
+            let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, 'laser', this.nextDir);
+            //console.log(laser);
+        }else{
+            let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', this.nextDir);
+        }
+        
+        this.nextPercent=Math.random();
+        this.nextDir=Phaser.Math.Between(0,3);
+    }
     create()
     {   
         console.log('created classicmode');
@@ -188,34 +220,14 @@ class ClassicMode extends Phaser.Scene {
         //console.log(room.getTopLeft().x);
         room.input.hitArea.setTo(10, 10, 700, 460);
         
-        function getNext(percent, dir){
-            let incoming=["from north", "from east", "from south", "from west"];
-            let outgoing=[" to south", " to west", " to north", " to east"];
-            let output;
-            if(percent<=0.6){
-                output = "laser " + incoming[dir] + outgoing[dir];
-            }else{
-                output = "mirror " + incoming[dir] + outgoing[(dir+3)%4];
-            }
-            return output;
-        }
-
         this.laserGrid = this.physics.add.staticGroup();
         this.mirrors = this.physics.add.staticGroup();
-        let percent=Math.random();
-        let dir=Phaser.Math.Between(0,3);
+        this.nextPercent=Math.random();
+        this.nextDir=Phaser.Math.Between(0,3);
         
         room.on('pointerdown', function (pointer) {
-            if(percent<=0.6){
-                let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, 'laser', dir);
-                //console.log(laser);
-            }else{
-                let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', dir);
-            }
-
-            percent=Math.random();
-            dir=Phaser.Math.Between(0,3);
-            console.log(getNext(percent,dir));
+            this.placeObject(room, pointer);
+            console.log(this.getNextItem());
         }, this);
         
 
@@ -263,7 +275,6 @@ class ClassicMode extends Phaser.Scene {
             //this.shaderPipeline.setFloat2('mouse', pointer.x, pointer.y);
     
         }, this);
-        console.log(getNext(percent,dir));
         this.animdirs=[
             {x:0,y:-0.5},
             {x:0.5,y:0},
