@@ -9,7 +9,7 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            //debug:true
+            debug:true
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly
