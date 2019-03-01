@@ -1,0 +1,93 @@
+var directions = {
+    SOUTH: 0,
+    WEST: 1,
+    NORTH: 2,
+    EAST: 3
+}
+
+class ClassicMode extends Phaser.Scene {
+    constructor()
+    {
+        super('ClassicMode');
+    }
+
+    preload()
+    {
+        this.load.image('room', 'assets/skies/space.jpg');
+        this.load.image('laser', 'assets/images/classic/laser.png');
+    }
+
+    makeLaser(room, pointer, textureKey, direction){
+        let laser = undefined;
+        if(direction === directions.SOUTH){
+            laser = this.add.tileSprite(pointer.x, room.getTopLeft().y, 10, room.height, textureKey).setOrigin(0.5, 0);
+        }else if(direction === directions.WEST){
+            laser = this.add.tileSprite(room.getBottomRight().x,    pointer.y, room.width, 10, textureKey).setOrigin(1, 0.5);
+        }else if(direction === directions.NORTH){
+            laser = this.add.tileSprite(pointer.x,                  room.getBottomRight().y, 10, room.height, textureKey).setOrigin(0.5, 1);
+        }else if(direction === directions.EAST){
+            laser = this.add.tileSprite(room.getTopLeft().x,        pointer.y, room.width, 10, textureKey).setOrigin(0, 0.5);
+        }
+        if(laser!==undefined){
+            laser.direction = direction;
+            this.laserGrid.add(laser);
+        }
+        return laser;
+    }
+
+    makeItem(room, pointer, textureKey, type){
+        //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
+        let item = this.physics.add.sprite(pointer.x, pointer.y, textureKey);
+        //let item = this.add.sprite(pointer.x, pointer.y, textureKey);// part of the eventual solution
+        //this.mirrors.add(item); //part of the eventual solution
+        this.physics.world.overlap(this.laserGrid, item, function(mirror, laser){
+            if(laser.direction===0){
+                laser.height=mirror.y-laser.y;
+                laser.body.height = laser.height;
+            }
+        }, null, this);
+        return item;
+    }
+
+    create()
+    {   
+
+        let room = this.add.image(40,60,'room').setOrigin(0).setInteractive();
+
+        this.laserGrid = this.physics.add.staticGroup();
+        //this.mirrors = this.physics.add.staticGroup(); //this was the eventual solution
+        let i=0;
+        room.on('pointerdown', function (pointer) {
+            if(i===0){
+                let laser = this.makeLaser(room, {x:pointer.x, y:pointer.y}, 'laser', i);
+                i++;
+            }else{
+                let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'tex', i);
+                i--;
+            }
+            
+        }, this);
+        
+    }
+    update()
+    {   
+
+    }
+}
+
+var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'phaser-example',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            debug:true
+        }
+    },
+    scene: ClassicMode
+};
+
+
+let game = new Phaser.Game(config);

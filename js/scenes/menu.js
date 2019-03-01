@@ -1,35 +1,4 @@
-// ###################################"
-
-var DistortPipeline = new Phaser.Class({
-
-    Extends: Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline,
-
-    initialize:
-
-    function DistortPipeline (game)
-    {
-        Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline.call(this, {
-            game: game,
-            renderer: game.renderer,
-            fragShader: `
-            precision mediump float;
-            uniform float     time;
-            uniform vec2      resolution;
-            uniform sampler2D uMainSampler;
-            varying vec2 outTexCoord;
-            void main( void ) {
-                vec2 uv = outTexCoord;
-                //uv.y *= -1.0;
-                uv.x += (sin((uv.y + (time * 0.1)) * 20.0) * 0.001) + (sin((uv.x + (time * 0.2)) * 15.0) * 0.002) + (sin((uv.y + (time * 0.05)) * 32.0) * 0.002) + (sin((uv.y + (time * 0.05)) * 131.0) * 0.001);
-                uv.y += (sin((uv.x + (time * 0.5)) * 12.0) * 0.002) + (sin((uv.x + (time * 0.01)) * 64.0) * 0.003) + (sin((uv.x - (time * 0.05)) * 170.0) * 0.001);;
-                vec4 texColor = texture2D(uMainSampler, uv);
-                gl_FragColor = texColor;
-            }`
-        });
-    } 
-
-});
-
+import Shader from '../shader/pipelines.js';
 class MainMenu extends Phaser.Scene {
     constructor()
     {
@@ -76,7 +45,8 @@ class MainMenu extends Phaser.Scene {
 
         //about submenu images
         this.load.image('laser_bot_bg', 'assets/images/menu/laser_bot_bg.png');
-        this.load.image('laser_bot_fg', 'assets/images/menu/laser_bot_fg.png')
+        this.load.image('laser_bot_fg', 'assets/images/menu/laser_bot_fg.png');
+        //this.load.glsl('distort', 'js/shader/distort.glsl');
     }
     create()
     {   
@@ -102,21 +72,21 @@ class MainMenu extends Phaser.Scene {
             this.showAboutMenu(false);
         }, this);
 
-        var cam1 = this.cameras.main;
-        var cam2 = this.cameras.add(0,0,800,600);
+        let shader = new Shader(this.sys.game, this.cache.shader.get('distort'));
 
-        this.t = 0; // time variable for the distor shader
-        this.tIncrement = 0.005;
-        this.distortPipeline = this.sys.game.renderer.addPipeline('Distort', new DistortPipeline(this.sys.game));
-        this.distortPipeline.setFloat2('resolution', this.game.config.width, this.game.config.height);
+        //creates a new shader if it hasn't been created yet
+        //this.distortPipeline = this.sys.game.renderer.pipelines['Distort'];
+        //if(!this.distortPipeline){
+        //    console.log('created jitter shader');
+        //    this.distortPipeline = this.sys.game.renderer.addPipeline('Distort', shader); 
+        //}
+        //this.distortPipeline.setFloat2('resolution', this.game.config.width, this.game.config.height);
         
-        //cam2.setRenderToTexture(this.distortPipeline);
     }
 
     update()
     {
-        this.t+=this.tIncrement;
-        this.distortPipeline.setFloat1('time', this.t);
+        //this.distortPipeline.setFloat1('time', this.time.now*0.2);
         this.beam_bubbles.tilePositionX -= 2;
         this.beam_bubbles.tilePositionY += 0.24;
         this.title_spark_bg.alpha = 0.15*Math.sin(this.time.now*(Math.random()*0.001)+0.001)+0.75;
@@ -175,6 +145,7 @@ class MainMenu extends Phaser.Scene {
         this.laser_mid_fg.mask = imperfectionmask;
         this.laser_bot_fg.mask = imperfectionmask;
         this.beam_bubbles.setVisible(false);
+        this.beam_bubbles.alpha = 0.8;
         
         this.classic_button = this.add.sprite(100, 280, 'classic_button').setInteractive().setOrigin(0);
         this.puzzle_button = this.add.sprite(300, 270, 'puzzle_button').setInteractive().setOrigin(0);
