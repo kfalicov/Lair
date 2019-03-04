@@ -1,3 +1,6 @@
 js/jsconfig.json
 defs/
 *.afphoto
+*.kra
+*.kra~
+*.zip
