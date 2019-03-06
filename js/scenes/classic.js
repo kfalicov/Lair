@@ -73,13 +73,16 @@ class ClassicMode extends Phaser.Scene {
 
     preload()
     {
-        this.load.image('room', 'assets/images/classic/room.png');
+        this.load.image('background', 'assets/images/classic/background.png');
         this.load.image('floor', ['assets/images/classic/floor.png', 'assets/images/classic/floor_normal.png']);
+        this.load.image('room_border', 'assets/images/classic/room_border.png');
         this.load.image('vignette', 'assets/images/classic/vignette.png');
         this.load.image('laser_fg', 'assets/images/classic/laser_foreground.png');
         this.load.image('laser_bg', 'assets/images/classic/laser_background.png');
+        this.load.image('laser_preview', 'assets/images/classic/laser_preview.png');
         this.load.image('noodle_noise', 'assets/images/classic/noodle_noise.png');
         this.load.image('mirror', 'assets/images/classic/mirror.png');
+        this.load.image('mirror_preview', 'assets/images/classic/mirror_preview.png');
         this.load.image('item_box', 'assets/images/classic/item_box.png');
         this.load.image('info_button', 'assets/images/classic/info_button.png');
 
@@ -138,7 +141,7 @@ class ClassicMode extends Phaser.Scene {
             }, this);
             //after all obstacle checks are done, this ensures the laser body is at its final size
             //and the last mirror touched is the relevant data
-            if(data && data.direction!=directions.NONE){
+            if(data && data.direction!==directions.NONE){
                 //console.log('reflected');
                 laser.child = this.makeLaserRecursive(room, data, data.direction, data.mirror);
             }
@@ -173,22 +176,11 @@ class ClassicMode extends Phaser.Scene {
 
     makeItem(room, pointer, textureKey, type){
         //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
-        let item = this.add.sprite(pointer.x, pointer.y, textureKey).setInteractive();
-        item.on('pointerdown', function(pointer){
-            if(this.nextPercent<=0.6){
-                let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, this.nextDir);
-                this.nextPercent=Math.random();
-                this.nextDir=Phaser.Math.Between(0,3);
-                console.log(this.getNextItem());
-            }else{
-                console.log('unable to place mirror near other mirror');
-            }
-        }, this);
-        item.input.hitArea.setTo(-5, -5, item.width+10, item.height+10);
+        let item = this.add.sprite(pointer.x, pointer.y, textureKey);
         this.mirrors.add(item);
-        item.body.position = {x:item.x-10, y:item.y-10}
-        item.body.height = 20;
-        item.body.width = 20;
+        item.body.position = {x:item.x-12, y:item.y-13}
+        item.body.height = 25;
+        item.body.width = 25;
         
         //make sure directions in/out are ordered clockwise
         if(type===0){
@@ -220,49 +212,133 @@ class ClassicMode extends Phaser.Scene {
         return item;
     }
 
-    
-    getNextItem(){
-        let incoming=["from north", "from east", "from south", "from west"];
-        let outgoing=[" to south", " to west", " to north", " to east"];
-        let output;
-            if(this.nextPercent<=0.6){
-                output = "laser " + incoming[this.nextDir] + outgoing[this.nextDir];
-            }else{
-                output = "mirror " + incoming[this.nextDir] + outgoing[(this.nextDir+3)%4];
-            }
-        return output;
-    }
-    placeObject(room, pointer){
-        //console.log(pointer.x, pointer.y);
-        pointer.x = Math.floor(pointer.x)-0.5;
-        pointer.y = Math.floor(pointer.y)-0.5;
-        //console.log(pointer.x, pointer.y);
-        if(this.nextPercent<=0.6){
-            let laser = this.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, this.nextDir);
-            //console.log(laser);
-        }else{
-            let item = this.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', this.nextDir);
-            //console.log(item.getTopLeft());
-        }
-        
-        this.nextPercent=Math.random();
-        this.nextDir=Phaser.Math.Between(0,3);
-    }
     create()
     {   
-        console.log('created classicmode');
         this.input.keyboard.on('keydown_ESC', function(event){
             this.scene.start('MainMenu');
         }, this);
 
-        let room = this.add.image(40,60,'room').setOrigin(0).setInteractive();
+        let background = this.add.image(0,0,'background').setOrigin(0).setInteractive();
+
+        let room = this.add.tileSprite(40,60, 720, 480, 'floor').setOrigin(0);
+        let room_border = this.add.image(room.getTopLeft().x-3,room.getTopLeft().y-3,'room_border').setOrigin(0);
+
+        let ROOM_PADDING_L = 16;
+        let ROOM_PADDING_M = 17;
+        let placeables=[
+            function(pointer, direction, scene){
+                scene.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, direction);
+            },
+            function(pointer, direction, scene){
+                scene.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', direction);
+            },
+            function(){
+
+            }
+        ];
+
+        let vignette = this.add.image(40,60, 'vignette').setOrigin(0);
+        //console.log(room.getTopLeft().x);
+        //room.input.hitArea.setTo(10, 10, 700, 460);
+        
+        this.laserGrid = this.physics.add.staticGroup();
+        this.mirrors = this.physics.add.staticGroup();
+
+        //randomly selects laser or item with a higher chance of laser (60% - 40%)
+        let nextItem = Math.random()<.6? 0 : 1;
+        //let nextItem = 1;
+        let direction = 0;
+
+        let clampX = Phaser.Math.Clamp(this.input.activePointer.x, room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
+        let clampY = Phaser.Math.Clamp(this.input.activePointer.y, room.getTopLeft().y+ROOM_PADDING_L, room.getBottomRight().y-ROOM_PADDING_L);
+        let beampreview = this.add.tileSprite(clampX, 60, 4, room.height, 'laser_preview').setOrigin(0.5, 0);
+        beampreview.alpha = 0.8;
+        beampreview.setBlendMode(Phaser.BlendModes.ADD);
+        
+        let beamorigin = this.add.tileSprite(clampX, 60, 16, 8, 'laser_preview').setOrigin(0.5,0);
+        beamorigin.alpha = 0.8;
+        beamorigin.setBlendMode(Phaser.BlendModes.ADD);
+
+        let mirrorpreview = this.physics.add.sprite(clampX,clampY,'mirror_preview');
+        mirrorpreview.alpha = 0.8;
+        mirrorpreview.setBlendMode(Phaser.BlendModes.ADD);
+
+        //whether to show beam or mirror on start
+        let showBeam = (nextItem===0)? true : false;
+        beampreview.setVisible(showBeam);
+        beamorigin.setVisible(showBeam);
+        mirrorpreview.setVisible(!showBeam);
+
+        this.input.on('pointerscroll', function(event){
+            direction = ((event.deltaY<0)? direction + 1 : direction + 3)%4;
+            if(direction === 0 || direction === 2){
+                let clampX = Phaser.Math.Clamp(Math.floor(this.input.activePointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
+                beampreview.setPosition(clampX, room.y);
+                beamorigin.setOrigin(0.5,0);
+                beamorigin.width = 16;
+                beamorigin.height = 8;
+                if(direction===0){
+                    beamorigin.setPosition(clampX, room.y);
+                }else{
+                    beamorigin.setPosition(clampX, room.getBottomRight().y-8);
+                }
+                beampreview.width = 4;
+                beampreview.height = room.height;
+                beampreview.setOrigin(0.5,0);
+            }else{
+                let clampY = Phaser.Math.Clamp(Math.floor(this.input.activePointer.y), room.getTopLeft().y+ROOM_PADDING_L, room.getBottomRight().y-ROOM_PADDING_L);
+                beampreview.setPosition(room.x, clampY);
+                beamorigin.setOrigin(0,0.5);
+                beamorigin.width = 8;
+                beamorigin.height = 16;
+                if(direction===3){
+                    beamorigin.setPosition(room.x, clampY);
+                }else{
+                    beamorigin.setPosition(room.getBottomRight().x-8, clampY);
+                }
+                beampreview.width = room.width;
+                beampreview.height = 4;
+                beampreview.setOrigin(0,0.5);
+            }
+            mirrorpreview.angle = direction*90;
+        }, this);
+
+        background.on('pointerdown', function (pointer) {
+            //this.placeObject(room, pointer);
+            placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this);
+            nextItem = Math.random()<.6? 0 : 1;
+            let showBeam = (nextItem===0)? true : false;
+            beampreview.setVisible(showBeam);
+            beamorigin.setVisible(showBeam);
+            mirrorpreview.setVisible(!showBeam);
+            if(nextItem === 1){
+                let overlap = false;
+                this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
+                    overlap = true;
+                }, null, this);
+                if(overlap){
+                    background.disableInteractive();
+                }else{
+                    background.setInteractive();
+                }
+                mirrorpreview.setVisible(!overlap);
+            }
+        }, this);  
+        
+        /**
+         * UI STUFF
+         */
+        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
+        this.add.image(40,543, 'info_button').setOrigin(0);
+        /**
+         * END UI STUFF
+         */
         
         /**
          * LIGHTING STUFF
          */
-        let floor = this.add.tileSprite(40,60, room.width, room.height, 'floor').setOrigin(0);
-        floor.setPipeline('Light2D');
-        this.cursorspotlight  = this.lights.addLight(0, 0, 200).setScrollFactor(0.0).setIntensity(1);
+        room.setPipeline('Light2D');
+        this.cursorspotlight  = this.lights.addLight(this.input.activePointer.x, this.input.activePointer.y, 200).setScrollFactor(0.0).setIntensity(1);
 
         this.lights.enable().setAmbientColor(0xbbbbbb);
 
@@ -271,27 +347,9 @@ class ClassicMode extends Phaser.Scene {
         orange.delay=3.14;
         let teal = this.lights.addLight(0, 100, 300).setColor(0x26afff).setIntensity(1.0);
         teal.delay=0;
-
         /**
          * END LIGHTING STUFF
          */
-
-        let vignette = this.add.image(40,60, 'vignette').setOrigin(0);
-        //console.log(room.getTopLeft().x);
-        room.input.hitArea.setTo(10, 10, 700, 460);
-        
-        this.laserGrid = this.physics.add.staticGroup();
-        this.mirrors = this.physics.add.staticGroup();
-        this.nextPercent=Math.random();
-        this.nextDir=Phaser.Math.Between(0,3);
-        
-        room.on('pointerdown', function (pointer) {
-            this.placeObject(room, pointer);
-            console.log(this.getNextItem());
-        }, this);  
-        
-        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
-        this.add.image(40,543, 'info_button').setOrigin(0);
 
         /**
          * SHADER STUFF
@@ -334,7 +392,38 @@ class ClassicMode extends Phaser.Scene {
             this.cursorspotlight.x = pointer.x;
             this.cursorspotlight.y = pointer.y;
             //this.shaderPipeline.setFloat2('mouse', pointer.x, pointer.y);
-    
+            if(direction===0 || direction===2){
+                let clampX = Phaser.Math.Clamp(Math.floor(pointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
+                beampreview.x = clampX
+                if(direction===0){
+                    beamorigin.setPosition(clampX, room.y);
+                }else{
+                    beamorigin.setPosition(clampX, room.getBottomRight().y-8);
+                }
+            }else{
+               let clampY = Phaser.Math.Clamp(Math.floor(pointer.y), room.getTopLeft().y+ROOM_PADDING_L, room.getBottomRight().y-ROOM_PADDING_L);
+               beampreview.y = clampY;
+               if(direction===3){
+                    beamorigin.setPosition(room.x, clampY);
+                }else{
+                    beamorigin.setPosition(room.getBottomRight().x-8, clampY);
+                }
+            }                
+            mirrorpreview.x = Phaser.Math.Clamp(Math.floor(pointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
+            mirrorpreview.y = Phaser.Math.Clamp(Math.floor(pointer.y), room.getTopLeft().y+ROOM_PADDING_L, room.getBottomRight().y-ROOM_PADDING_L);
+            if(nextItem === 1){
+                let overlap = false;
+                this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
+                    overlap = true;
+                }, null, this);
+                if(overlap){
+                    background.disableInteractive();
+                }else{
+                    background.setInteractive();
+                }
+                mirrorpreview.setVisible(!overlap);
+            }
+            
         }, this);
         this.animdirs=[
             {x:0,y:-0.5},
@@ -342,7 +431,6 @@ class ClassicMode extends Phaser.Scene {
             {x:0,y:0.5},
             {x:-0.5,y:0}
         ];
-
         
     }
     update()
