@@ -11,12 +11,12 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            fps:30,
+            //fps:30,
             //debug:true
         }
     },
-    //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, ClassicMode]
+    scene: ClassicMode //use this to test specific scenes directly
+    //scene: [MainMenu, ClassicMode]
 };
 
 let game = new Phaser.Game(config);

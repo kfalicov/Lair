@@ -86,6 +86,9 @@ class ClassicMode extends Phaser.Scene {
         this.load.image('item_box', 'assets/images/classic/item_box.png');
         this.load.image('info_button', 'assets/images/classic/info_button.png');
 
+        this.load.image('laser_ui', 'assets/images/classic/laser_ui.png');
+        this.load.image('mirror_ui', 'assets/images/classic/mirror_ui.png');
+
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
 
         console.log('clasic created');
@@ -178,9 +181,9 @@ class ClassicMode extends Phaser.Scene {
         //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
         let item = this.add.sprite(pointer.x, pointer.y, textureKey);
         this.mirrors.add(item);
-        item.body.position = {x:item.x-12, y:item.y-13}
-        item.body.height = 25;
-        item.body.width = 25;
+        item.body.position = {x:item.x-13, y:item.y-14}
+        item.body.height = 27;
+        item.body.width = 27;
         
         //make sure directions in/out are ordered clockwise
         if(type===0){
@@ -218,10 +221,38 @@ class ClassicMode extends Phaser.Scene {
             this.scene.start('MainMenu');
         }, this);
 
+        
+        /**
+         * UI STUFF
+         */
         let background = this.add.image(0,0,'background').setOrigin(0).setInteractive();
 
         let room = this.add.tileSprite(40,60, 720, 480, 'floor').setOrigin(0);
         let room_border = this.add.image(room.getTopLeft().x-3,room.getTopLeft().y-3,'room_border').setOrigin(0);
+
+        this.score=1000;
+
+        let getScoreString = function(score){
+            let result = String(Math.abs(score)).padStart(7,'0');
+            if(score<0){
+                result = '-'+result;
+            }
+            return result;
+        };
+
+        let scoredisplay = this.add.text(room.getBottomRight().x, 30, '0000000').setOrigin(1, 0.5);
+        scoredisplay.setFontSize(24);
+        scoredisplay.setFontFamily('"Roboto Mono", monospace');
+        
+        scoredisplay.setText(getScoreString(this.score));
+        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
+        this.add.image(40,543, 'info_button').setOrigin(0);
+        let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(2);
+        let mirrorui = this.add.image(720,520, 'mirror_ui').setOrigin(0).setDepth(2);
+        /**
+         * END UI STUFF
+         */
+
 
         let ROOM_PADDING_L = 16;
         let ROOM_PADDING_M = 17;
@@ -241,8 +272,12 @@ class ClassicMode extends Phaser.Scene {
         //console.log(room.getTopLeft().x);
         //room.input.hitArea.setTo(10, 10, 700, 460);
         
+        /**
+         * PHYSICS
+         */
         this.laserGrid = this.physics.add.staticGroup();
         this.mirrors = this.physics.add.staticGroup();
+        this.enemies = this.physics.add.group();
 
         //randomly selects laser or item with a higher chance of laser (60% - 40%)
         let nextItem = Math.random()<.6? 0 : 1;
@@ -268,6 +303,8 @@ class ClassicMode extends Phaser.Scene {
         beampreview.setVisible(showBeam);
         beamorigin.setVisible(showBeam);
         mirrorpreview.setVisible(!showBeam);
+        beamui.setVisible(showBeam);
+        mirrorui.setVisible(!showBeam);
 
         this.input.on('pointerscroll', function(event){
             direction = ((event.deltaY<0)? direction + 1 : direction + 3)%4;
@@ -303,14 +340,36 @@ class ClassicMode extends Phaser.Scene {
             mirrorpreview.angle = direction*90;
         }, this);
 
+        /**
+         * ENEMY PLACEMENT
+         */
+        var rect = new Phaser.Geom.Rectangle(room.getTopLeft().x, room.getTopLeft().y, room.width, room.height);
+        var p = Phaser.Geom.Rectangle.Random(rect);
+        var b = this.enemies.create(p.x,p.y,'info_button');
+        b.setBounce(1,1).setCollideWorldBounds(true);
+        b.setVelocity(100,100);
+        this.physics.add.existing(b);
+        this.physics.add.collider(b, this.laserGrid);
+        /**
+         * END ENEMY PLACEMENT
+         */
+
+        /**
+         * OBJECT PLACEMENT
+         */
         background.on('pointerdown', function (pointer) {
             //this.placeObject(room, pointer);
+            this.score-=100;
+            scoredisplay.setText(getScoreString(this.score));
             placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this);
             nextItem = Math.random()<.6? 0 : 1;
             let showBeam = (nextItem===0)? true : false;
             beampreview.setVisible(showBeam);
             beamorigin.setVisible(showBeam);
             mirrorpreview.setVisible(!showBeam);
+            
+            beamui.setVisible(showBeam);
+            mirrorui.setVisible(!showBeam);
             if(nextItem === 1){
                 let overlap = false;
                 this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
@@ -324,21 +383,15 @@ class ClassicMode extends Phaser.Scene {
                 mirrorpreview.setVisible(!overlap);
             }
         }, this);  
-        
         /**
-         * UI STUFF
-         */
-        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
-        this.add.image(40,543, 'info_button').setOrigin(0);
-        /**
-         * END UI STUFF
+         * END OBJECT PLACEMENT
          */
         
         /**
          * LIGHTING STUFF
          */
         room.setPipeline('Light2D');
-        this.cursorspotlight  = this.lights.addLight(this.input.activePointer.x, this.input.activePointer.y, 200).setScrollFactor(0.0).setIntensity(1);
+        this.cursorspotlight  = this.lights.addLight(this.input.activePointer.x, this.input.activePointer.y, 250).setScrollFactor(0.0).setIntensity(0.8);
 
         this.lights.enable().setAmbientColor(0xbbbbbb);
 
