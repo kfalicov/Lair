@@ -42,7 +42,7 @@ var directions = {
         }
         point.x = Math.floor(point.x);
         point.y = Math.floor(point.y);
-        console.log(point);
+        //console.log(point);
         if(laser.direction===0){
             laser.height=point.y-laser.y;
             laser.bg.height = laser.height;
