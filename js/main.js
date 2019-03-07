@@ -6,10 +6,13 @@ let config = {
     width: 800,
     height: 600,
     parent: gamediv,
+    pixelArt: true,
+    //zoom: 3,
     physics: {
         default: 'arcade',
         arcade: {
-            debug:true
+            //fps:30,
+            //debug:true
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly

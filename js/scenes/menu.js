@@ -194,7 +194,7 @@ class MainMenu extends Phaser.Scene {
         let particles = this.add.particles('shards');
         let cageparticles = this.add.particles('shards');
         var triangle1 = new Phaser.Geom.Triangle(0,236, 608, 364, 0, 240);
-        var triangle2 = new Phaser.Geom.Triangle(93, 381, 800, 167, 800, 156);
+        var triangle2 = new Phaser.Geom.Triangle(93, 382, 800, 167, 800, 156);
         var triangle3 = new Phaser.Geom.Triangle(461,0, 808, 315, 438,0);
         var emitter = particles.createEmitter(
             {
