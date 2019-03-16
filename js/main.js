@@ -1,8 +1,9 @@
 import MainMenu from './scenes/menu.js';
-import ClassicMode from './scenes/classic.js';
+import {ClassicMode, ClassicModeRender} from './scenes/classic.js';
+import {DayNight} from './scenes/daynight.js'
 
 let config = {
-    type: Phaser.AUTO,
+    type: Phaser.WEBGL,
     width: 800,
     height: 600,
     parent: gamediv,
@@ -16,7 +17,7 @@ let config = {
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, ClassicMode]
+    scene: [MainMenu, DayNight, ClassicMode, ClassicModeRender]
 };
 
 let game = new Phaser.Game(config);

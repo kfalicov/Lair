@@ -65,10 +65,10 @@ var directions = {
     }
 }
 
-class ClassicMode extends Phaser.Scene {
+export class ClassicMode extends Phaser.Scene {
     constructor()
     {
-        super('ClassicMode');
+        super({key:'ClassicMode', active:false});
     }
 
     preload()
@@ -91,7 +91,7 @@ class ClassicMode extends Phaser.Scene {
 
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
 
-        console.log('clasic created');
+        console.log('classic created');
     }
 
     destroyLaser(laser){
@@ -150,6 +150,8 @@ class ClassicMode extends Phaser.Scene {
             }
             //all lasers are below all items
             laser.depth = 1;
+            laser.bg.depth = 1;
+            laser.fg.depth = 1;
         }
         return laser;
     }
@@ -216,18 +218,14 @@ class ClassicMode extends Phaser.Scene {
     }
 
     create()
-    {   
-        this.input.keyboard.on('keydown_ESC', function(event){
-            this.scene.start('MainMenu');
-        }, this);
-
-        
+    {       
         /**
          * UI STUFF
          */
         let background = this.add.image(0,0,'background').setOrigin(0).setInteractive();
 
         let room = this.add.tileSprite(40,60, 720, 480, 'floor').setOrigin(0);
+        let vignette = this.add.image(40,60, 'vignette').setOrigin(0);
         let room_border = this.add.image(room.getTopLeft().x-3,room.getTopLeft().y-3,'room_border').setOrigin(0);
 
         this.score=1000;
@@ -245,10 +243,10 @@ class ClassicMode extends Phaser.Scene {
         scoredisplay.setFontFamily('"Roboto Mono", monospace');
         
         scoredisplay.setText(getScoreString(this.score));
-        this.add.image(720,520,'item_box').setOrigin(0).setDepth(1);
+        this.add.image(720,520,'item_box').setOrigin(0).setDepth(4);
         this.add.image(40,543, 'info_button').setOrigin(0);
-        let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(2);
-        let mirrorui = this.add.image(720,520, 'mirror_ui').setOrigin(0).setDepth(2);
+        let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(5);
+        let mirrorui = this.add.image(720,520, 'mirror_ui').setOrigin(0).setDepth(5);
         /**
          * END UI STUFF
          */
@@ -268,7 +266,6 @@ class ClassicMode extends Phaser.Scene {
             }
         ];
 
-        let vignette = this.add.image(40,60, 'vignette').setOrigin(0);
         //console.log(room.getTopLeft().x);
         //room.input.hitArea.setTo(10, 10, 700, 460);
         
@@ -362,6 +359,8 @@ class ClassicMode extends Phaser.Scene {
             this.score-=100;
             scoredisplay.setText(getScoreString(this.score));
             placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this);
+            
+            this.children.depthSort();
             nextItem = Math.random()<.6? 0 : 1;
             let showBeam = (nextItem===0)? true : false;
             beampreview.setVisible(showBeam);
@@ -390,7 +389,7 @@ class ClassicMode extends Phaser.Scene {
         /**
          * LIGHTING STUFF
          */
-        room.setPipeline('Light2D');
+        //room.setPipeline('Light2D');
         this.cursorspotlight  = this.lights.addLight(this.input.activePointer.x, this.input.activePointer.y, 250).setScrollFactor(0.0).setIntensity(0.8);
 
         this.lights.enable().setAmbientColor(0xbbbbbb);
@@ -407,43 +406,50 @@ class ClassicMode extends Phaser.Scene {
         /**
          * SHADER STUFF
          */
-        let shader = new Shader(this.sys.game, 
+        let shader2 = new Shader(this.sys.game, 
                                 undefined, 
                                 this.cache.shader.get('crt_fragment'));
-
+        let shader = new Phaser.Renderer.WebGL.Pipelines.TextureTintPipeline({
+            game: this.sys.game, 
+            renderer: this.sys.game.renderer,
+            fragShader: this.cache.shader.get('crt_fragment')
+        });
         //creates a new shader if it hasn't been created yet
-        this.shaderPipeline = this.sys.game.renderer.pipelines['CRT'];
-        if(!this.shaderPipeline){
+        let shaderPipeline = this.sys.game.renderer.pipelines['CRT'];
+        if(!shaderPipeline){
             console.log('created CRT shader');
-            this.shaderPipeline = this.sys.game.renderer.addPipeline('CRT', shader);
+            shaderPipeline = this.sys.game.renderer.addPipeline('CRT', shader);
         }
-        this.shaderPipeline.setFloat2('inputResolution', this.game.config.width, this.game.config.height);
-        this.shaderPipeline.setFloat2('outputResolution', this.game.config.width, this.game.config.height);
-        this.shaderPipeline.setFloat2('TextureSize', 400.0, 300.0);
-        this.shaderPipeline.setFloat2('mouse', this.input.activePointer.x, this.input.activePointer.y);
+        shaderPipeline.setFloat2('inputResolution', this.game.config.width, this.game.config.height);
+        shaderPipeline.setFloat2('outputResolution', this.game.config.width, this.game.config.height);
+        shaderPipeline.setFloat2('TextureSize', 400.0, 300.0);
+        shaderPipeline.setFloat2('mouse', this.input.activePointer.x, this.input.activePointer.y);
         
-        /**
-         * END SHADER STUFF
-         */
 
         //toggles between visible shader and disabled shader
         this.input.on('pointerdown', function(pointer){
             //this.cameras.main.shake(150, 0.01);
-            if(this.cameras.main.pipeline === this.shaderPipeline){
+            if(this.cameras.main.pipeline === shaderPipeline){
                 //this.cameras.main.clearRenderToTexture();
             }
             else{
-                //this.cameras.main.setRenderToTexture(this.shaderPipeline);
+                //this.cameras.main.setRenderToTexture('CRT');
             }
         }, this);
-        
         //pipelines can be used on individual images or sprites
-        //room.setPipeline('Scanline');
+        //room.setPipeline('CRT');
+        //this.cameras.main.setRenderToTexture();
+        /**
+         * END SHADER STUFF
+         */
 
         this.input.on('pointermove', function (pointer) {
-
             this.cursorspotlight.x = pointer.x;
-            this.cursorspotlight.y = pointer.y;
+            if(this.cameras.main.pipeline !== null){
+                this.cursorspotlight.y = 600-pointer.y; //y is inverted when camera has setrendertotexture;
+            }else{
+                this.cursorspotlight.y = pointer.y;
+            }
             //this.shaderPipeline.setFloat2('mouse', pointer.x, pointer.y);
             if(direction===0 || direction===2){
                 let clampX = Phaser.Math.Clamp(Math.floor(pointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
@@ -484,11 +490,11 @@ class ClassicMode extends Phaser.Scene {
             {x:0,y:0.5},
             {x:-0.5,y:0}
         ];
-        
+        this.scene.launch('ClassicModeRender');
     }
     update()
     {       
-        this.shaderPipeline.setFloat1('time', this.time.now);
+        //this.shaderPipeline.setFloat1('time', this.time.now);
         this.laserGrid.children.each(function(laser){
             //laser.animFrameTime++;
             //if(laser.animFrameTime % 8 === 0){
@@ -500,13 +506,65 @@ class ClassicMode extends Phaser.Scene {
             
             //console.log(laser.frame);
         }, this);
-        let scene = this;
+        let scene = this.scene.get('ClassicMode');
         this.lights.forEachLight(function(currLight){
             if(currLight!==scene.cursorspotlight){
                 currLight.x = 400+Math.sin(scene.time.now/1000+currLight.delay) * 250;
                 currLight.y = 300+Math.sin(scene.time.now/500+currLight.delay) * 130;
+                if(scene.cameras.main.pipeline !== null){
+                    currLight.y = 600-currLight.y; //y is inverted when camera has setrendertotexture;
+                }
             }
         });
+        
+        //console.log(this.children);
     }
 }
-export default ClassicMode;
+
+
+export class ClassicModeRender extends Phaser.Scene{
+    constructor(){
+        super({key: 'ClassicModeRender', active: false});
+        this.rt;
+    }
+    preload(){        
+        this.load.image('wipe_mask', 'assets/images/effect/wipe_mask.png');
+    }
+    create(){
+        this.rt = this.add.renderTexture(0, 0, 800, 600).setVisible(false);
+        this.scene.setVisible(false, 'ClassicMode');
+
+        this.rt.saveTexture('classictexture');
+
+        let rendertexture = this.add.image(0,0,'classictexture').setOrigin(0,0);
+        
+        let wipe_mask = this.add.image(800,0,'wipe_mask').setOrigin(0,0);
+        wipe_mask.setVisible(false);
+        let rendermask = new Phaser.Display.Masks.BitmapMask(this, wipe_mask);
+        rendermask.invertAlpha = true;
+        rendertexture.mask = rendermask;
+        let tween = this.tweens.add({
+            targets: wipe_mask,
+            x:-473,
+            duration:1000,
+            paused: true,
+        });
+        
+        this.input.keyboard.once('keydown_ESC', function(event){
+           
+            tween.setCallback('onComplete', function(){
+                //console.log(this.scene);
+                this.scene.stop();
+                this.scene.get('ClassicMode').scene.stop();
+            }, [wipe_mask], this); 
+            this.scene.launch('MainMenu');
+            tween.restart();
+        }, this);
+    }
+    update(){
+        var gameScene = this.scene.get('ClassicMode');
+        
+        //this.rt.clear();
+        this.rt.draw(gameScene.children,0,0);
+    }
+}
