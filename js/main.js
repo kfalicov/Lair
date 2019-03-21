@@ -12,12 +12,12 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            //fps:30,
+            //fps:60,
             //debug:true
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, DayNight, ClassicMode, ClassicModeRender]
+    scene: [MainMenu, ClassicMode, DayNight]
 };
 
 let game = new Phaser.Game(config);

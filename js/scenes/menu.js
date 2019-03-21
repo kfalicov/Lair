@@ -64,7 +64,14 @@ class MainMenu extends Phaser.Scene {
         this.optionbutton.on('pointerup', function(){this.showOptionMenu(true);}, this);
         this.aboutbutton.on('pointerup', function(){this.showAboutMenu(true);}, this);
 
-        this.classic_button.on('pointerup', function(){this.scene.start('ClassicMode')},this);
+        this.classic_button.on('pointerup', function(){this.scene.launch('DayNight', {
+            from: this.scene.key,
+            to: 'ClassicMode',
+            data:{
+                score:1000,
+                difficulty:0
+            }
+        })},this);
         
         this.menu_tint.on('pointerup', function(){
             this.showStartMenu(false);
