@@ -238,7 +238,7 @@ export class ClassicMode extends Phaser.Scene {
         //let front_wall = this.add.image(room.getTopLeft().x-3, room.getBottomRight().y+3, 'rear_wall').setOrigin(0,1).setDepth(4);
         
         this.score=data.score;
-        console.log(data);
+        //console.log(data);
 
         room.y_offset = ROOM_HEIGHT;
 
@@ -377,10 +377,10 @@ export class ClassicMode extends Phaser.Scene {
         beamui.setVisible(showBeam);
         mirrorui.setVisible(!showBeam);
 
-        this.input.on('pointerscroll', function(event){
-            direction = ((event.deltaY<0)? direction + 1 : direction + 3)%4;
+        let pointer = this.input.activePointer;
+        let updateDirection = function(direction){
             if(direction === 0 || direction === 2){
-                let clampX = Phaser.Math.Clamp(Math.floor(this.input.activePointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
+                let clampX = Phaser.Math.Clamp(Math.floor(pointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
                 beampreview.setPosition(clampX, room.y-ROOM_HEIGHT);
                 beamorigin.setOrigin(0.5,0);
                 beamorigin.width = 16;
@@ -394,7 +394,7 @@ export class ClassicMode extends Phaser.Scene {
                 beampreview.height = room.height;
                 beampreview.setOrigin(0.5,0);
             }else{
-                let clampY = Phaser.Math.Clamp(Math.floor(this.input.activePointer.y), room.getTopLeft().y+ROOM_PADDING_L-ROOM_HEIGHT, room.getBottomRight().y-ROOM_PADDING_L-ROOM_HEIGHT);
+                let clampY = Phaser.Math.Clamp(Math.floor(pointer.y), room.getTopLeft().y+ROOM_PADDING_L-ROOM_HEIGHT, room.getBottomRight().y-ROOM_PADDING_L-ROOM_HEIGHT);
                 beampreview.setPosition(room.x, clampY);
                 beamorigin.setOrigin(0,0.5);
                 beamorigin.width = 8;
@@ -409,8 +409,37 @@ export class ClassicMode extends Phaser.Scene {
                 beampreview.setOrigin(0,0.5);
             }
             mirrorpreview.angle = direction*90;
+        }
+
+        this.input.on('pointerscroll', function(event){
+            direction = ((event.deltaY<0)? direction + 1 : direction + 3)%4;
+            updateDirection(direction);
         }, this);
 
+        this.input.keyboard.on('keydown_A', function (event) {
+            direction = (direction+3)%4;
+            updateDirection(direction);
+        }, this);
+
+        this.input.keyboard.on('keydown_D', function (event) {
+            direction = (direction+1)%4;
+            updateDirection(direction);
+        }, this);
+
+        this.input.keyboard.on('keydown_R', function(event){
+            this.scene.start('ClassicMode', this.scene.settings.data);
+        },this);
+
+        this.input.keyboard.on('keydown_N', function(event){
+            this.scene.launch('DayNight', {
+                from:this.scene.key,
+                to: 'ClassicMode',
+                data: {
+                    score: this.score,
+                    difficulty: this.scene.settings.data.difficulty+1
+                }
+            });
+        }, this);
         
 
         /**
@@ -563,7 +592,7 @@ export class ClassicMode extends Phaser.Scene {
     update()
     {   
         if(this.queueEnd === true){
-            console.log(this);
+            //console.log(this);
             this.scene.launch('DayNight', {
                 from:this.scene.key,
                 to: 'ClassicMode',
