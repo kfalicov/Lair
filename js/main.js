@@ -1,6 +1,7 @@
 import MainMenu from './scenes/menu.js';
 import {ClassicMode, ClassicModeRender} from './scenes/classic.js';
-import {DayNight} from './scenes/daynight.js'
+import {Transition} from './scenes/transition.js'
+import Dialog from './scenes/dialog.js';
 
 let config = {
     type: Phaser.WEBGL,
@@ -16,8 +17,8 @@ let config = {
             //debug:true
         }
     },
-    //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, ClassicMode, DayNight]
+    //scene: ClassicMode, DayNight //use this to test specific scenes directly
+    scene: [MainMenu, ClassicMode, Transition, Dialog]
 };
 
 let game = new Phaser.Game(config);

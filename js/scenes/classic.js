@@ -192,7 +192,7 @@ export class ClassicMode extends Phaser.Scene {
         
         //make sure directions in/out are ordered clockwise
         if(type===0){
-            item.direction = [directions.SOUTH, directions.EAST]; 
+            item.direction = [directions.SOUTH, directions.EAST];
         }else if(type===1){
             item.direction = [directions.WEST, directions.SOUTH];
             item.angle=90; 
@@ -203,6 +203,7 @@ export class ClassicMode extends Phaser.Scene {
             item.direction = [directions.EAST, directions.NORTH]; 
             item.angle = 270;
         }
+        
         let data = undefined;
         this.physics.world.overlap(this.laserGrid, item, function(mirror, laser){
             data = directions.reflect(mirror, laser);
@@ -237,24 +238,55 @@ export class ClassicMode extends Phaser.Scene {
         //let rear_wall = this.add.image(room.getTopLeft().x-3, 40-3, 'rear_wall').setOrigin(0);
         //let front_wall = this.add.image(room.getTopLeft().x-3, room.getBottomRight().y+3, 'rear_wall').setOrigin(0,1).setDepth(4);
         
-        this.score=data.score;
+        this.money=data.money;
         //console.log(data);
 
         room.y_offset = ROOM_HEIGHT;
 
-        let getScoreString = function(score){
-            let result = String(Math.abs(score)).padStart(7,'0');
-            if(score<0){
-                result = '-'+result;
-            }
-            return result;
-        };
+        let moneydisplay = this.add.text(room.getBottomRight().x, 22, '0000000',{
+            fontFamily:'"Roboto Mono", monospace',
+            fontSize:32,
+            color: '#ffdd00'
+        }).setOrigin(1, 0.5);
 
-        let scoredisplay = this.add.text(room.getBottomRight().x, 22, '0000000').setOrigin(1, 0.5);
-        scoredisplay.setFontSize(24);
-        scoredisplay.setFontFamily('"Roboto Mono", monospace');
+        let scene = this;
+        let countdown = undefined;
+
+        let updateMoneyDisplay = function(money){
+            let result = '$'+String(Math.abs(money)).padStart(7,' ');
+            if(money<0){
+                result = '-'+result;
+            }else if(money<=0){
+                moneydisplay.setColor('#d81313');
+                console.log('3');
+                countdown = scene.time.addEvent({
+                    delay: 1000,
+                    repeat: 2,
+                    callback: function(){
+                        console.log(countdown.repeatCount);
+                        if(countdown.repeatCount===0){
+                            //console.log(this);
+                            this.scene.stop('Dialog')
+                            this.scene.launch('Transition', {
+                                from:this.scene.key, 
+                                to:'MainMenu'
+                            });
+                        }
+                    },
+                    callbackScope: scene
+                });
+            }else{
+                if(countdown){
+                    countdown.destroy();
+                    countdown = undefined;
+                }
+                moneydisplay.setColor('#ffdd00');
+            }
+            moneydisplay.setText(result);
+        };
         
-        scoredisplay.setText(getScoreString(this.score));
+        updateMoneyDisplay(this.money);
+
         this.add.image(720,520,'item_box').setOrigin(0).setDepth(4);
         this.add.image(40,543, 'info_button').setOrigin(0).setDepth(4);
         let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(5);
@@ -315,6 +347,7 @@ export class ClassicMode extends Phaser.Scene {
             var b = this.enemies.create(0,0,'info_button');
             b.setBounce(1,1).setCollideWorldBounds(true);
             b.setRandomPosition(40+b.displayOriginX+1, 60+b.displayOriginY+1, room.width-(b.width+2),room.height-(b.height+2));
+            b.setDepth(1);
             b.setTint(colors[i]);
             b.setData('captureTime',0);
             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
@@ -325,6 +358,7 @@ export class ClassicMode extends Phaser.Scene {
 
             let t = this.physics.add.sprite(0,0,'target');
             t.setRandomPosition(40+t.displayOriginX+1, 60+t.displayOriginY+1, room.width-(t.width+2),room.height-(t.height+2));
+            t.setDepth(0);
             t.setTint(colors[i]);
             //this.physics.add.existing(t);
             b.on('overlapend',function(){
@@ -337,14 +371,15 @@ export class ClassicMode extends Phaser.Scene {
                 if(_b.data.values.captureTime >= 200){
                     _b.body.enable = false;
                     this.enemies.remove(_b);
-                    this.score+=1500;
-                    scoredisplay.setText(getScoreString(this.score));
+                    this.money+=1500;
+                    updateMoneyDisplay(this.money);
                     //TODO play capture animation
                 }
             },null,this);
         }
         this.physics.add.collider(this.enemies, this.laserGrid);
         this.physics.add.collider(this.enemies, walls);
+        this.physics.add.collider(this.enemies, this.mirrors);
         /**
          * END ENEMY PLACEMENT
          */
@@ -431,11 +466,11 @@ export class ClassicMode extends Phaser.Scene {
         },this);
 
         this.input.keyboard.on('keydown_N', function(event){
-            this.scene.launch('DayNight', {
+            this.scene.launch('Transition', {
                 from:this.scene.key,
                 to: 'ClassicMode',
                 data: {
-                    score: this.score,
+                    money: this.money,
                     difficulty: this.scene.settings.data.difficulty+1
                 }
             });
@@ -447,8 +482,8 @@ export class ClassicMode extends Phaser.Scene {
          */
         background.on('pointerdown', function (pointer) {
             //this.placeObject(room, pointer);
-            this.score-=100;
-            scoredisplay.setText(getScoreString(this.score));
+            this.money-=100;
+            updateMoneyDisplay(this.money);
             //places the new item
             placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this);
             
@@ -485,7 +520,9 @@ export class ClassicMode extends Phaser.Scene {
         this.cursorspotlight  = this.lights.addLight(this.input.activePointer.x, this.input.activePointer.y, 250).setScrollFactor(0.0).setIntensity(0.8);
 
         this.lights.enable().setAmbientColor(0xbbbbbb);
-
+        
+        let shadowImage = this.add.tileSprite(room.x,room.y,room.width,room.height,'laser_preview').setOrigin(0);
+        shadowImage.setBlendMode(Phaser.BlendModes.MULTIPLY);
 
         let orange = this.lights.addLight(0, 100, 300).setColor(0xeaac00).setIntensity(0.8);
         orange.delay=3.14;
@@ -529,7 +566,7 @@ export class ClassicMode extends Phaser.Scene {
             }
         }, this);
         this.input.keyboard.once('keydown_ESC', function(event){
-            this.scene.launch('DayNight', {
+            this.scene.launch('Transition', {
                 from:this.scene.key, 
                 to:'MainMenu'
             });
@@ -588,16 +625,48 @@ export class ClassicMode extends Phaser.Scene {
             {x:0,y:0.5},
             {x:-0.5,y:0}
         ];
+        this.shadows = this.add.graphics();
+        this.shadows.fillStyle(0x000000,1);
+        shadowImage.setMask(new Phaser.Display.Masks.GeometryMask(this, this.shadows));
+        this.shadows.setVisible(false);
     }
     update()
     {   
+        var pointer = this.input.activePointer;
+        this.shadows.clear();
+        this.mirrors.children.each(function(mirror){
+            //console.log(pointer);
+            var corners = [
+                new Phaser.Geom.Point(mirror.getBottomRight().x, mirror.getTopLeft().y),
+                new Phaser.Geom.Point(mirror.getBottomRight().x, mirror.getBottomRight().y),
+                new Phaser.Geom.Point(mirror.getTopLeft().x, mirror.getBottomRight().y),
+                new Phaser.Geom.Point(mirror.getTopLeft().x, mirror.getTopLeft().y)
+            ];
+            let mod = mirror.direction[0]%2==0? 1 : -1;
+            corners.splice((mirror.direction[0]-mirror.direction[1]-mod),1);
+            let rays = [];
+            for(let i=0;i<corners.length;i++){
+                let c = corners[i];
+                var angle = Phaser.Math.Angle.Between(pointer.x, pointer.y, c.x, c.y);
+                var ray = new Phaser.Geom.Line();
+                var dist = Phaser.Math.Distance.Between(c.x, c.y, pointer.x, pointer.y);
+                ray = Phaser.Geom.Line.SetToAngle(ray, c.x, c.y, angle, dist/4);
+                rays.push(ray);
+            }
+            for(let i=0;i<rays.length;i++){
+                let r1 = rays[i];
+                let r2 = rays[(i+1)%rays.length];
+                
+                this.shadows.fillPoints([r1.getPointA(), r2.getPointA(),r2.getPointB(), r1.getPointB()],true);
+            }
+        },this);
         if(this.queueEnd === true){
             //console.log(this);
-            this.scene.launch('DayNight', {
+            this.scene.launch('Transition', {
                 from:this.scene.key,
                 to: 'ClassicMode',
                 data: {
-                    score: this.score,
+                    money: this.money,
                     difficulty: this.scene.settings.data.difficulty+1
                 }
             });
@@ -605,6 +674,17 @@ export class ClassicMode extends Phaser.Scene {
         }
         //this.shaderPipeline.setFloat1('time', this.time.now);
         this.enemies.children.each(function(child){
+            var angle = Phaser.Math.Angle.Between(pointer.x, pointer.y, child.x, child.y);
+            var ray = new Phaser.Geom.Line();
+            var dist = Phaser.Math.Distance.Between(child.x, child.y, pointer.x, pointer.y);
+            ray = Phaser.Geom.Line.SetToAngle(ray, child.x, child.y, angle, (dist/15));
+            var ellipse = new Phaser.Curves.Ellipse(ray.getPointB().x, ray.getPointB().y, (dist/15)+20,((dist/50))+20);
+            ellipse.setRotation(Phaser.Geom.Line.Angle(ray));
+            //console.log(ray.angle);
+            
+            //this.shadows.strokeLineShape(ray);
+            this.shadows.fillEllipseShape(ellipse);
+            //ellipse.draw(this.shadows);
             if(child.data.values.onTarget === false){
                 child.data.values.captureTime=Math.max(child.data.values.captureTime-1,0);
             }
@@ -671,7 +751,7 @@ export class ClassicModeRender extends Phaser.Scene{
                 this.scene.stop();
                 this.scene.stop('ClassicMode');
             }, [wipe_mask], this); 
-            this.scene.launch('DayNight', this.scene.key);
+            this.scene.launch('Transition', this.scene.key);
             tween.restart();
         }, this);
         tween.setCallback('onComplete', function(){

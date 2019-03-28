@@ -47,6 +47,7 @@ class MainMenu extends Phaser.Scene {
         this.load.image('laser_bot_bg', 'assets/images/menu/laser_bot_bg.png');
         this.load.image('laser_bot_fg', 'assets/images/menu/laser_bot_fg.png');
         //this.load.glsl('distort', 'js/shader/distort.glsl');
+
     }
     create()
     {   
@@ -64,11 +65,11 @@ class MainMenu extends Phaser.Scene {
         this.optionbutton.on('pointerup', function(){this.showOptionMenu(true);}, this);
         this.aboutbutton.on('pointerup', function(){this.showAboutMenu(true);}, this);
 
-        this.classic_button.on('pointerup', function(){this.scene.launch('DayNight', {
+        this.classic_button.on('pointerup', function(){this.scene.launch('Transition', {
             from: this.scene.key,
             to: 'ClassicMode',
             data:{
-                score:1000,
+                money:1500,
                 difficulty:0
             }
         })},this);
@@ -80,7 +81,9 @@ class MainMenu extends Phaser.Scene {
         }, this);
 
         let shader = new Shader(this.sys.game, this.cache.shader.get('distort'));
-
+        //this.scene.launch('Dialog', {
+        //    text:'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
+        //});
         //creates a new shader if it hasn't been created yet
         //this.distortPipeline = this.sys.game.renderer.pipelines['Distort'];
         //if(!this.distortPipeline){
