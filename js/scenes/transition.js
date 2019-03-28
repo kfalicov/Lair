@@ -1,7 +1,7 @@
-export class DayNight extends Phaser.Scene{
+export class Transition extends Phaser.Scene{
     constructor()
     {
-        super('DayNight');
+        super('Transition');
     }
 
     preload()
@@ -26,11 +26,17 @@ export class DayNight extends Phaser.Scene{
             paused: true,
         });
 
-        //after 1 second on this screen, continue to the next screen
+        //this timed event continues to the next screen after 1 second.
         let timedEvent = this.time.delayedCall(1000, function(){
             rendermask.invertAlpha = true;
             tween.setCallback('onComplete', function(){
                 console.log('stopped '+this.scene.key);
+                //console.log(data);
+                if(data.hasOwnProperty('data') && data.data.difficulty===0){
+                        this.scene.launch('Dialog', {
+                            text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
+                        });
+                }
                 this.scene.stop();
             }, [wipe_mask], this); 
             this.scene.launch(data.to, data.data);
@@ -38,7 +44,7 @@ export class DayNight extends Phaser.Scene{
         }, [], this);
         timedEvent.paused=true;
 
-        //wait for the transition effect to be complete
+        //this callback is performed as soon as this scene is the only one showing.
         tween.setCallback('onComplete', function(){
             console.log('stopped '+data.from);
             this.scene.stop();
