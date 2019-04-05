@@ -17,7 +17,7 @@ let config = {
             //debug:true
         }
     },
-    //scene: ClassicMode, DayNight //use this to test specific scenes directly
+    //scene: ClassicMode //use this to test specific scenes directly
     scene: [MainMenu, ClassicMode, Transition, Dialog]
 };
 
