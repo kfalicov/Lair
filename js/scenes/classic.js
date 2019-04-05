@@ -88,6 +88,10 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('item_box', 'assets/images/classic/item_box.png');
         this.load.image('info_button', 'assets/images/classic/info_button.png');
 
+        this.load.image('undo_button', 'assets/images/classic/undo_button.png');
+        this.load.image('delete_button', 'assets/images/classic/delete_button.png');
+        this.load.image('delete_cursor', 'assets/images/classic/delete_cursor.png');
+
         this.load.image('target', 'assets/images/classic/target.png');
         this.load.image('corner', 'assets/images/classic/corner.png');
 
@@ -111,12 +115,13 @@ export class ClassicMode extends Phaser.Scene {
         }
         laser.bg.destroy();
         laser.fg.destroy();
-        laser.destroy();
+        this.laserGrid.remove(laser, true, true);
         laser = null;
     }
     destroyMirror(mirror){
         let lasers = mirror.incomingLasers;
         let room = this.room;
+        mirror.setName('orphan'); //this is to warn anything using it that it should have been cut off from the game
         this.mirrors.remove(mirror,true,true);
         if(lasers.length>0){
             for(let i = 0; i<lasers.length;i++){
@@ -165,6 +170,7 @@ export class ClassicMode extends Phaser.Scene {
                 }
             }
         }
+        mirror=null;
     }
 
     makeLaserRecursive(room, coord, direction, parentMirror){
@@ -254,7 +260,10 @@ export class ClassicMode extends Phaser.Scene {
 
     makeItem(room, pointer, textureKey, type){
         //room.scene.add.sprite(pointer.x, pointer.y, textureKey);
-        let item = this.add.sprite(pointer.x, pointer.y, textureKey);
+        let item = this.add.sprite(pointer.x, pointer.y, textureKey).disableInteractive();
+        item.on('pointerdown', function(){
+            this.destroyMirror(item);
+        },this);
         item.incomingLasers = [];
         this.mirrors.add(item);
         item.body.position = {x:item.x-13, y:item.y-14}
@@ -411,7 +420,6 @@ export class ClassicMode extends Phaser.Scene {
          * END UI STUFF
          */
 
-
         let placeables=[
             function(pointer, direction, scene){
                 return scene.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, direction);
@@ -523,18 +531,23 @@ export class ClassicMode extends Phaser.Scene {
         
         let beampreview = this.add.tileSprite(clampX, 60, 8, room.height, 'laser_preview').setOrigin(0.5, 0);
         
-        beampreview.setBlendMode(Phaser.BlendModes.OVERLAY);
+        //beampreview.setBlendMode(overlay);
         beampreview.setOrigin(0.5,0);
-        beampreview.alpha=0.8;
+        beampreview.alpha=1;
         beampreview.setDepth(10);
         
         let beamorigin = this.add.tileSprite(clampX, 60, 16, 8, 'shadow').setOrigin(0.5,0);
-        beamorigin.setBlendMode(Phaser.BlendModes.ADD);
+        beamorigin.setBlendMode(Phaser.BlendModes.OVERLAY);
+
+        let delete_cursor = this.add.sprite(this.input.activePointer.x, this.input.activePointer.y, 'delete_cursor').setOrigin(0);
+        delete_cursor.setBlendMode(Phaser.BlendModes.ADD);
+        delete_cursor.setDepth(10);
+        delete_cursor.setVisible(false);
 
         let mirrorpreview = this.physics.add.sprite(clampX,clampY,'mirror_preview');
         mirrorpreview.body.setSize(30,30);
         
-        mirrorpreview.setBlendMode(Phaser.BlendModes.OVERLAY);
+        //mirrorpreview.setBlendMode(Phaser.BlendModes.SCREEN);
         mirrorpreview.setDepth(10);
         //the shadow effect that adds contrast to the light
 
@@ -591,6 +604,31 @@ export class ClassicMode extends Phaser.Scene {
             updateDirection(direction);
         }, this);
 
+        let deleteMode=false;
+        let mirrorlist=this.mirrors;
+        let toggleDelete = function(enabled){
+            delete_cursor.setVisible(enabled);
+            if(enabled){
+                beampreview.setVisible(false);
+                beamorigin.setVisible(false);
+                mirrorpreview.setVisible(false);
+            }else{
+                beampreview.setVisible(showBeam);
+                beamorigin.setVisible(showBeam);
+                mirrorpreview.setVisible(!showBeam);
+            }
+            mirrorlist.children.each(function(mirror){
+                if(enabled){
+                    mirror.setInteractive();
+                }else{
+                    mirror.disableInteractive();
+                }
+            });
+        }
+        this.input.keyboard.on('keydown_X', function(){
+            toggleDelete(deleteMode=!deleteMode);
+        },this);
+
         this.input.keyboard.on('keydown_D', function (event) {
             direction = (direction+1)%4;
             updateDirection(direction);
@@ -598,17 +636,37 @@ export class ClassicMode extends Phaser.Scene {
 
         let lastItemQueue = [];
 
+        function undo(){
+            if(lastItemQueue.length>0){
+                let lastItemPlaced = lastItemQueue.pop();
+                while(lastItemPlaced!==undefined && lastItemPlaced.item.name==='orphan'){
+                    lastItemPlaced = lastItemQueue.pop();
+                }
+                if(lastItemPlaced){
+                    if(lastItemPlaced.type===0){
+                        scene.destroyLaser(lastItemPlaced.item);
+                    }else if(lastItemPlaced.type===1){
+                        scene.destroyMirror(lastItemPlaced.item);
+                    }
+                    updateMoneyDisplay(scene.money+=lastItemPlaced.cost);
+                }
+            }
+        }
+        let undo_button = this.add.sprite(300,30,'undo_button');
+        undo_button.setBlendMode(Phaser.BlendModes.ADD);
+        undo_button.setInteractive().on('pointerdown', function(){
+            undo();
+        },this);
+
+        let delete_button = this.add.sprite(250, 30, 'delete_button');
+        delete_button.setBlendMode(Phaser.BlendModes.ADD);
+        delete_button.setInteractive().on('pointerdown', function(){
+            toggleDelete(deleteMode=!deleteMode);
+        },this);
+
         this.input.keyboard.on('keydown_Z', function (event) {
             if(event.ctrlKey){
-                if(lastItemQueue.length>0){
-                    let lastItemPlaced = lastItemQueue.pop();
-                    if(lastItemPlaced.type===0){
-                        this.destroyLaser(lastItemPlaced.item);
-                    }else if(lastItemPlaced.type===1){
-                        this.destroyMirror(lastItemPlaced.item);
-                    }
-                    updateMoneyDisplay(this.money+=lastItemPlaced.cost);
-                }
+                undo();
             }
         }, this);
 
@@ -633,34 +691,39 @@ export class ClassicMode extends Phaser.Scene {
          */
         background.on('pointerdown', function (pointer) {
             //this.placeObject(room, pointer);
-            updateMoneyDisplay(this.money-=100);
-            //places the new item
-            lastItemQueue.push({
-                item:placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this),
-                cost:100,
-                type:nextItem
-            });
-            this.children.depthSort();
-            nextItem = Math.random()<.6? 0 : 1;
-            let showBeam = (nextItem===0)? true : false;
-            beampreview.setVisible(showBeam);
-            beamorigin.setVisible(showBeam);
-            mirrorpreview.setVisible(!showBeam);
-            
-            beamui.setVisible(showBeam);
-            mirrorui.setVisible(!showBeam);
-            if(nextItem === 1){
-                let overlap = false;
-                this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
-                    overlap = true;
-                }, null, this);
-                if(overlap){
-                    background.disableInteractive();
-                }else{
-                    background.setInteractive();
+            if(deleteMode){
+                toggleDelete(deleteMode=false);
+            }else{
+                //places the new item
+                updateMoneyDisplay(this.money-=100);
+                lastItemQueue.push({
+                    item:placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this),
+                    cost:100,
+                    type:nextItem
+                });
+                this.children.depthSort();
+                nextItem = Math.random()<.6? 0 : 1;
+                showBeam = (nextItem===0)? true : false;
+                beampreview.setVisible(showBeam);
+                beamorigin.setVisible(showBeam);
+                mirrorpreview.setVisible(!showBeam);
+                
+                beamui.setVisible(showBeam);
+                mirrorui.setVisible(!showBeam);
+                if(nextItem === 1){
+                    let overlap = false;
+                    this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
+                        overlap = true;
+                    }, null, this);
+                    if(overlap){
+                        background.disableInteractive();
+                    }else{
+                        background.setInteractive();
+                    }
+                    mirrorpreview.setVisible(!overlap);
                 }
-                mirrorpreview.setVisible(!overlap);
             }
+            
         }, this);  
         /**
          * END OBJECT PLACEMENT
@@ -758,8 +821,9 @@ export class ClassicMode extends Phaser.Scene {
             }                
             mirrorpreview.x = Phaser.Math.Clamp(Math.floor(pointer.x), room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
             mirrorpreview.y = Phaser.Math.Clamp(Math.floor(pointer.y), room.getTopLeft().y+ROOM_PADDING_L-ROOM_HEIGHT, room.getBottomRight().y-ROOM_PADDING_L-ROOM_HEIGHT);
-
-            if(nextItem === 1){
+            delete_cursor.x = pointer.x;
+            delete_cursor.y = pointer.y;
+            if(nextItem === 1 && !deleteMode){
                 let overlap = false;
                 this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
                     overlap = true;
