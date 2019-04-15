@@ -26,6 +26,15 @@ export class Transition extends Phaser.Scene{
             paused: true,
         });
 
+        //this callback is performed as soon as this scene is the only one showing.
+        tween.setCallback('onComplete', function(){
+            console.log('stopped '+data.from);
+            this.scene.stop('UI');
+            this.scene.stop(data.from);
+            timedEvent.paused = false;
+        }, [wipe_mask], this);
+        tween.restart();
+
         //this timed event continues to the next screen after 1 second.
         let timedEvent = this.time.delayedCall(1000, function(){
             rendermask.invertAlpha = true;
@@ -43,15 +52,6 @@ export class Transition extends Phaser.Scene{
             tween.restart();
         }, [], this);
         timedEvent.paused=true;
-
-        //this callback is performed as soon as this scene is the only one showing.
-        tween.setCallback('onComplete', function(){
-            console.log('stopped '+data.from);
-            this.scene.stop();
-            timedEvent.paused = false;
-        }, [wipe_mask], this.scene.get(data.from));
-        tween.restart();
-
         
     }
     update(){

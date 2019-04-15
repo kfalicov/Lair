@@ -88,8 +88,6 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('item_box', 'assets/images/classic/item_box.png');
         this.load.image('info_button', 'assets/images/classic/info_button.png');
 
-        this.load.image('undo_button', 'assets/images/classic/undo_button.png');
-        this.load.image('delete_button', 'assets/images/classic/delete_button.png');
         this.load.image('delete_cursor', 'assets/images/classic/delete_cursor.png');
 
         this.load.image('target', 'assets/images/classic/target.png');
@@ -263,6 +261,7 @@ export class ClassicMode extends Phaser.Scene {
         let item = this.add.sprite(pointer.x, pointer.y, textureKey).disableInteractive();
         item.on('pointerdown', function(){
             this.destroyMirror(item);
+            this.updateMoneyDisplay(this.money-=200);
         },this);
         item.incomingLasers = [];
         this.mirrors.add(item);
@@ -326,14 +325,18 @@ export class ClassicMode extends Phaser.Scene {
                 {x:minX, y:maxY}];
     }
 
+    say(name){
+        console.log('pressed '+name);
+    }
+
     create(data)
     {       
         //this.scene.setVisible(false, 'ClassicMode');
-        //this.scene.launch('ClassicModeRender',data);
+        this.scene.launch('UI',data);
         /**
          * UI STUFF
          */
-        let background = this.add.image(0,0,'background').setOrigin(0).setInteractive();
+        let background = this.add.tileSprite(0,0,this.sys.canvas.width, this.sys.canvas.height,'background').setOrigin(0).setInteractive();
 
         let ROOM_PADDING_L = 16;
         let ROOM_HEIGHT = 0;
@@ -384,7 +387,7 @@ export class ClassicMode extends Phaser.Scene {
                             numbereffect.restart();
                             if(countdown && countdown.repeatCount===0){
                                 number.destroy();
-                                this.scene.stop('Dialog')
+                                this.scene.stop('Dialog');
                                 this.scene.launch('Transition', {
                                     from:this.scene.key, 
                                     to:'MainMenu'
@@ -412,8 +415,6 @@ export class ClassicMode extends Phaser.Scene {
         
         updateMoneyDisplay(this.money=data.money);
 
-        this.add.image(720,520,'item_box').setOrigin(0).setDepth(4);
-        this.add.image(40,543, 'info_button').setOrigin(0).setDepth(4);
         let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(5);
         let mirrorui = this.add.image(720,520, 'mirror_ui').setOrigin(0).setDepth(5);
         /**
@@ -606,9 +607,10 @@ export class ClassicMode extends Phaser.Scene {
 
         let deleteMode=false;
         let mirrorlist=this.mirrors;
-        let toggleDelete = function(enabled){
-            delete_cursor.setVisible(enabled);
-            if(enabled){
+        this.toggleDelete = function(){
+            deleteMode = !deleteMode;
+            delete_cursor.setVisible(deleteMode);
+            if(deleteMode){
                 beampreview.setVisible(false);
                 beamorigin.setVisible(false);
                 mirrorpreview.setVisible(false);
@@ -618,15 +620,16 @@ export class ClassicMode extends Phaser.Scene {
                 mirrorpreview.setVisible(!showBeam);
             }
             mirrorlist.children.each(function(mirror){
-                if(enabled){
+                if(deleteMode){
                     mirror.setInteractive();
                 }else{
                     mirror.disableInteractive();
                 }
             });
+            return deleteMode;
         }
         this.input.keyboard.on('keydown_X', function(){
-            toggleDelete(deleteMode=!deleteMode);
+            this.toggleDelete();
         },this);
 
         this.input.keyboard.on('keydown_D', function (event) {
@@ -636,7 +639,7 @@ export class ClassicMode extends Phaser.Scene {
 
         let lastItemQueue = [];
 
-        function undo(){
+        this.undo = function(){
             if(lastItemQueue.length>0){
                 let lastItemPlaced = lastItemQueue.pop();
                 while(lastItemPlaced!==undefined && lastItemPlaced.item.name==='orphan'){
@@ -648,25 +651,14 @@ export class ClassicMode extends Phaser.Scene {
                     }else if(lastItemPlaced.type===1){
                         scene.destroyMirror(lastItemPlaced.item);
                     }
-                    updateMoneyDisplay(scene.money+=lastItemPlaced.cost);
+                    updateMoneyDisplay(scene.money-=150);
                 }
             }
         }
-        let undo_button = this.add.sprite(300,30,'undo_button');
-        undo_button.setBlendMode(Phaser.BlendModes.ADD);
-        undo_button.setInteractive().on('pointerdown', function(){
-            undo();
-        },this);
-
-        let delete_button = this.add.sprite(250, 30, 'delete_button');
-        delete_button.setBlendMode(Phaser.BlendModes.ADD);
-        delete_button.setInteractive().on('pointerdown', function(){
-            toggleDelete(deleteMode=!deleteMode);
-        },this);
 
         this.input.keyboard.on('keydown_Z', function (event) {
             if(event.ctrlKey){
-                undo();
+                this.undo();
             }
         }, this);
 
@@ -684,7 +676,6 @@ export class ClassicMode extends Phaser.Scene {
                 }
             });
         }, this);
-        
 
         /**
          * OBJECT PLACEMENT
@@ -692,7 +683,8 @@ export class ClassicMode extends Phaser.Scene {
         background.on('pointerdown', function (pointer) {
             //this.placeObject(room, pointer);
             if(deleteMode){
-                toggleDelete(deleteMode=false);
+                this.toggleDelete();
+                this.scene.get('UI').events.emit('StopDeleting');
             }else{
                 //places the new item
                 updateMoneyDisplay(this.money-=100);
@@ -782,6 +774,8 @@ export class ClassicMode extends Phaser.Scene {
             }
         }, this);
         this.input.keyboard.once('keydown_ESC', function(event){
+            
+            this.scene.stop('Dialog');
             this.scene.launch('Transition', {
                 from:this.scene.key, 
                 to:'MainMenu'
@@ -985,7 +979,7 @@ export class ClassicModeRender extends Phaser.Scene{
             tween.restart();
         }, this);
         tween.setCallback('onComplete', function(){
-            console.log('stopped '+data);
+            console.log('stopped tween of '+data);
             this.scene.stop();
         }, [wipe_mask], this.scene.get(data));
         tween.restart();

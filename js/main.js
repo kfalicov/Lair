@@ -1,6 +1,7 @@
 import MainMenu from './scenes/menu.js';
 import {ClassicMode, ClassicModeRender} from './scenes/classic.js';
 import {Transition} from './scenes/transition.js'
+import {UI} from './scenes/ui.js'
 import Dialog from './scenes/dialog.js';
 
 let config = {
@@ -18,7 +19,7 @@ let config = {
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, ClassicMode, Transition, Dialog]
+    scene: [MainMenu, ClassicMode, UI, Transition, Dialog]
 };
 
 let game = new Phaser.Game(config);
