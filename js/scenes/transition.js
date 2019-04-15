@@ -35,9 +35,10 @@ export class Transition extends Phaser.Scene{
         }, [wipe_mask], this);
         tween.restart();
 
-        //this timed event continues to the next screen after 1 second.
+        //this timed event transitions to the next screen after 1 second.
         let timedEvent = this.time.delayedCall(1000, function(){
             rendermask.invertAlpha = true;
+            //and as soon as the transition is complete, do this
             tween.setCallback('onComplete', function(){
                 console.log('stopped '+this.scene.key);
                 //console.log(data);

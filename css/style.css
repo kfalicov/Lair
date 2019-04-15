@@ -96,7 +96,7 @@ div{
 
 @font-face {
     font-family: 'Nexa';
-    src: url('assets/fonts/Nexa Bold.otf');
+    src: url('/assets/fonts/Nexa Bold.otf');
 }
 
 #logo{

@@ -412,7 +412,8 @@ export class ClassicMode extends Phaser.Scene {
             }
             moneydisplay.setText(result);
         };
-        
+        this.updateMoneyDisplay = updateMoneyDisplay;
+
         updateMoneyDisplay(this.money=data.money);
 
         let beamui = this.add.image(720,520, 'laser_ui').setOrigin(0).setDepth(5);
@@ -522,9 +523,6 @@ export class ClassicMode extends Phaser.Scene {
          */
 
 
-        //randomly selects laser or item with a higher chance of laser (60% - 40%)
-        let nextItem = Math.random()<.6? 0 : 1;
-        //let nextItem = 1;
         let direction = 0;
 
         let clampX = Phaser.Math.Clamp(this.input.activePointer.x, room.getTopLeft().x+ROOM_PADDING_L, room.getBottomRight().x-ROOM_PADDING_L);
@@ -551,14 +549,6 @@ export class ClassicMode extends Phaser.Scene {
         //mirrorpreview.setBlendMode(Phaser.BlendModes.SCREEN);
         mirrorpreview.setDepth(10);
         //the shadow effect that adds contrast to the light
-
-        //whether to show beam or mirror on start
-        let showBeam = (nextItem===0)? true : false;
-        beampreview.setVisible(showBeam);
-        beamorigin.setVisible(showBeam);
-        mirrorpreview.setVisible(!showBeam);
-        beamui.setVisible(showBeam);
-        mirrorui.setVisible(!showBeam);
 
         let pointer = this.input.activePointer;
         let updateDirection = function(direction){
@@ -607,6 +597,7 @@ export class ClassicMode extends Phaser.Scene {
 
         let deleteMode=false;
         let mirrorlist=this.mirrors;
+        
         this.toggleDelete = function(){
             deleteMode = !deleteMode;
             delete_cursor.setVisible(deleteMode);
@@ -638,6 +629,42 @@ export class ClassicMode extends Phaser.Scene {
         }, this);
 
         let lastItemQueue = [];
+        let nextItemQueue = [];
+        
+        let showBeam;
+
+        let replenishItems = function(){
+            while(nextItemQueue.length<2){
+                nextItemQueue.push(Math.random()<.6? 0 : 1);
+            }
+            console.log(nextItemQueue);
+        }
+        let updatePreviews = function(){
+            showBeam = (nextItemQueue[0]===0)? true : false;
+            beampreview.setVisible(showBeam);
+            beamorigin.setVisible(showBeam);
+            mirrorpreview.setVisible(!showBeam);
+            
+            beamui.setVisible(showBeam);
+            mirrorui.setVisible(!showBeam);
+            if(nextItemQueue[0] === 1){
+                let overlap = false;
+                scene.physics.world.overlap(mirrorpreview, scene.mirrors, function(){
+                    overlap = true;
+                }, null, this);
+                if(overlap){
+                    background.disableInteractive();
+                }else{
+                    background.setInteractive();
+                }
+                mirrorpreview.setVisible(!overlap);
+            }
+        }
+        
+        replenishItems();
+        //whether to show beam or mirror on start
+        updatePreviews();
+        
 
         this.undo = function(){
             if(lastItemQueue.length>0){
@@ -646,6 +673,9 @@ export class ClassicMode extends Phaser.Scene {
                     lastItemPlaced = lastItemQueue.pop();
                 }
                 if(lastItemPlaced){
+                    nextItemQueue.unshift(lastItemPlaced.type);
+                    updatePreviews();
+                    console.log(nextItemQueue);
                     if(lastItemPlaced.type===0){
                         scene.destroyLaser(lastItemPlaced.item);
                     }else if(lastItemPlaced.type===1){
@@ -688,31 +718,17 @@ export class ClassicMode extends Phaser.Scene {
             }else{
                 //places the new item
                 updateMoneyDisplay(this.money-=100);
+                let nextItem = nextItemQueue.shift();
                 lastItemQueue.push({
                     item:placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this),
                     cost:100,
                     type:nextItem
                 });
                 this.children.depthSort();
-                nextItem = Math.random()<.6? 0 : 1;
-                showBeam = (nextItem===0)? true : false;
-                beampreview.setVisible(showBeam);
-                beamorigin.setVisible(showBeam);
-                mirrorpreview.setVisible(!showBeam);
+                updatePreviews();
                 
-                beamui.setVisible(showBeam);
-                mirrorui.setVisible(!showBeam);
-                if(nextItem === 1){
-                    let overlap = false;
-                    this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
-                        overlap = true;
-                    }, null, this);
-                    if(overlap){
-                        background.disableInteractive();
-                    }else{
-                        background.setInteractive();
-                    }
-                    mirrorpreview.setVisible(!overlap);
+                if(nextItemQueue.length<2){
+                    replenishItems();
                 }
             }
             
@@ -817,7 +833,7 @@ export class ClassicMode extends Phaser.Scene {
             mirrorpreview.y = Phaser.Math.Clamp(Math.floor(pointer.y), room.getTopLeft().y+ROOM_PADDING_L-ROOM_HEIGHT, room.getBottomRight().y-ROOM_PADDING_L-ROOM_HEIGHT);
             delete_cursor.x = pointer.x;
             delete_cursor.y = pointer.y;
-            if(nextItem === 1 && !deleteMode){
+            if(nextItemQueue[0] === 1 && !deleteMode){
                 let overlap = false;
                 this.physics.world.overlap(mirrorpreview, this.mirrors, function(){
                     overlap = true;
