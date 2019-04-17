@@ -98,6 +98,7 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('mirror_ui', 'assets/images/classic/mirror_ui.png');
 
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
+        this.load.json('abilities', 'assets/config/abilities.json');
     }
 
     destroyLaser(laser){
@@ -260,7 +261,7 @@ export class ClassicMode extends Phaser.Scene {
         let item = this.add.sprite(pointer.x, pointer.y, textureKey).disableInteractive();
         item.on('pointerdown', function(){
             this.destroyMirror(item);
-            this.updateMoneyDisplay(this.money-=200);
+            this.updateMoneyDisplay(this.money-=this.abilities.delete.cost);
         },this);
         item.incomingLasers = [];
         this.mirrors.add(item);
@@ -351,6 +352,8 @@ export class ClassicMode extends Phaser.Scene {
             color: '#ffdd00'
         }).setOrigin(1, 0.5);
 
+        this.abilities = this.cache.json.get('abilities');
+
         let scene = this;
         let countdown = undefined;
         let number = undefined;
@@ -420,9 +423,12 @@ export class ClassicMode extends Phaser.Scene {
 
         let placeables=[
             function(pointer, direction, scene){
+                console.log(scene.abilities);
+                updateMoneyDisplay(scene.money-=scene.abilities.laser.cost);
                 return scene.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, direction);
             },
             function(pointer, direction, scene){
+                updateMoneyDisplay(scene.money-=scene.abilities.mirror.cost);
                 return scene.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', direction);
             },
             function(){
@@ -689,21 +695,22 @@ export class ClassicMode extends Phaser.Scene {
                     }else if(lastItemPlaced.type===1){
                         scene.destroyMirror(lastItemPlaced.item);
                     }
-                    updateMoneyDisplay(scene.money-=150);
+                    //undo cost
+                    updateMoneyDisplay(scene.money-=this.abilities.undo.cost);
                 }
             }
         }
         this.swapItem = function(){
             nextItemQueue[0] = 1-nextItemQueue[0];
             updatePreviews();
-            updateMoneyDisplay(scene.money-=200);
+            updateMoneyDisplay(scene.money-=this.abilities.swap.cost);
         }
         this.slow = function(){
             this.enemies.children.each(function(enemy){
                 enemy.originalSpeed = Math.min(100,enemy.originalSpeed);
                 this.physics.velocityFromRotation(enemy.body.angle, Math.min(100,enemy.originalSpeed), enemy.body.velocity);
             },this);
-            updateMoneyDisplay(scene.money-=3000);
+            updateMoneyDisplay(scene.money-=this.abilities.slow.cost);
         }
 
         /**
@@ -724,7 +731,7 @@ export class ClassicMode extends Phaser.Scene {
                         if(enemy.stun){
                             enemy.stun.remove();
                         }
-                        enemy.stun = this.time.delayedCall(800, ()=>{
+                        enemy.stun = this.time.delayedCall(1000, ()=>{
                             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
                             angle = angle+(90*Phaser.Math.Between(0,3));
                             this.physics.velocityFromAngle(angle,enemy.originalSpeed,enemy.body.velocity);
@@ -732,14 +739,14 @@ export class ClassicMode extends Phaser.Scene {
                     }
                 }, this);
                 if(hitenemy){
-                    updateMoneyDisplay(this.money-=500);
+                    updateMoneyDisplay(this.money-=this.abilities.confuse.cost);
                 }
                 this.toggleFunction('confuse');
                 this.scene.get('UI').events.emit('StopConfusing');
             }else{
                 //places the new item
-                updateMoneyDisplay(this.money-=100);
                 let nextItem = nextItemQueue.shift();
+                //updateMoneyDisplay(this.money-=100);
                 lastItemQueue.push({
                     item:placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this),
                     cost:100,

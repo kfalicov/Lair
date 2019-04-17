@@ -104,7 +104,7 @@ class Dialog extends Phaser.Scene {
             }
             //timer.paused = true;
         },this);
-        this.cameras.main.setPosition(0, this.sys.canvas.height-150);
+        this.cameras.main.setPosition(200, this.sys.canvas.height-150);
     }
 
     update()

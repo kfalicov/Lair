@@ -7,6 +7,7 @@ export class UI extends Phaser.Scene{
     preload()
     {
         this.load.atlas('buttons','assets/images/ui/buttons.png', 'assets/images/ui/buttons_atlas.json');
+        this.load.json('costs', 'assets/config/costs.json');
     }
     create(data)
     {
@@ -52,18 +53,31 @@ export class UI extends Phaser.Scene{
             }
         ];
 
-        let tooltips = [
-            "Undo",
-            "Delete",
-            "Switch",
-            "Stun",
-            "Slow"
-        ];
+        let abilities = this.cache.json.get('abilities');
 
         let lastpressed = null;
         let buttons = [];
-        let tooltipcam = this.cameras.add(0,0,256,128, false, 'tooltip');
-        let onAButton = false;
+        let tooltipcam = this.cameras.add(0,0, 256, 120);
+        tooltipcam.setScroll(0,-100);
+        tooltipcam.setVisible(false);
+        let titleconf = {
+            fontFamily: '"Roboto Mono", monospace',
+            strokeThickness:2,
+            stroke:"#686868",
+            fontSize:20,
+        }
+        let subtitleconf = {
+            fontFamily: '"Roboto Mono", monospace',
+            strokeThickness:2,
+            stroke:"#686868",
+            fontSize:14,
+        }
+        let tooltiptitle = this.add.text(0,-100,'Name', titleconf).setOrigin(0);
+        let tooltipcost = this.add.text(150,-100,'Cost', titleconf).setOrigin(1,0).setColor('#ffdd00');
+        let tooltipdesc = this.add.text(0,-70, 'Description', subtitleconf);
+
+        let showTooltipTimer = null;
+        let hideTooltipTimer = null;
         for(let i=0; i<names.length; i++){
             let button = this.add.sprite(coords.x+(coords.offset*i), coords.y, 'buttons', names[i]+'_unpressed').setInteractive({useHandCursor: true});
             button.name = names[i];
@@ -78,10 +92,42 @@ export class UI extends Phaser.Scene{
                 }
             });
             button.on('pointerover', () =>{
-                onAButton = true;
+                tooltiptitle.setText(abilities[names[i]].name);
+                tooltipcost.setText('$'+abilities[names[i]].cost);
+                tooltipdesc.setText(abilities[names[i]].tooltip);
+                tooltipcam.setPosition(button.x-20, button.y-tooltipcam.height);
+                console.log('went over a button');
+                if(showTooltipTimer === null){
+                    showTooltipTimer = this.time.delayedCall(500, ()=>{
+                        console.log('showed the tooltip');
+                        tooltipcam.setVisible(true);
+                    });
+                }else{
+                    showTooltipTimer.paused = false;
+                }
+                if(hideTooltipTimer !== null && hideTooltipTimer.getProgress()<1){
+                    hideTooltipTimer.remove();
+                    hideTooltipTimer = null;
+                }
             });
             button.on('pointerout',()=>{
-                onAButton = false;
+                if(showTooltipTimer !== null && showTooltipTimer.getProgress()<1){
+                    showTooltipTimer.paused = true;
+                    hideTooltipTimer = this.time.delayedCall(200, ()=>{
+                        console.log('left before showing tooltip');
+                        showTooltipTimer.remove();
+                        showTooltipTimer = null;
+                    });
+                }else{
+                    hideTooltipTimer = this.time.delayedCall(200, ()=>{
+                        console.log('hid the tooltip');
+                        hideTooltipTimer.remove();
+                        hideTooltipTimer = null;
+                        showTooltipTimer.remove();
+                        showTooltipTimer = null;
+                        tooltipcam.setVisible(false);
+                    })
+                }
             })
             buttons.push(button);
         }

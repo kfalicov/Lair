@@ -1,0 +1,42 @@
+{
+    "undo": {
+        "name":"Undo",
+        "cost":150,
+        "tooltip":"Removes the last item placed."
+    },
+    "delete": {
+        "name":"Delete",
+        "cost":200,
+        "tooltip":"Remove specific items.\nCharged per item deleted."
+    },
+    "swap": {
+        "name":"Swap",
+        "cost":200,
+        "tooltip":"The current item to place\nis swapped out."
+    },
+    "confuse": {
+        "name":"Confuse",
+        "cost":500,
+        "tooltip":"Stuns heroes for a short\ntime before sending them\nin a random direction."
+    },
+    "slow": {
+        "name":"Slow",
+        "cost":3000,
+        "tooltip":"Slows all heroes in the\nroom for the rest of\nthe level."
+    },
+    "info": {
+        "name":"Info",
+        "cost":0,
+        "tooltip":"Shows you how things work."
+    },
+    "laser": {
+        "name":"Laser",
+        "cost":100,
+        "tooltip":"A line that blocks heroes."
+    },
+    "mirror": {
+        "name":"Mirror",
+        "cost":100,
+        "tooltip":"Bounces lasers at right angles."
+    }
+}
