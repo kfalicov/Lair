@@ -1,5 +1,5 @@
 import MainMenu from './scenes/menu.js';
-import {ClassicMode, ClassicModeRender} from './scenes/classic.js';
+import {ClassicMode} from './scenes/classic.js';
 import {Transition} from './scenes/transition.js'
 import {UI} from './scenes/ui.js'
 import Dialog from './scenes/dialog.js';

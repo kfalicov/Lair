@@ -28,9 +28,10 @@ export class Transition extends Phaser.Scene{
 
         //this callback is performed as soon as this scene is the only one showing.
         tween.setCallback('onComplete', function(){
-            console.log('stopped '+data.from);
             this.scene.stop('UI');
+            this.scene.pause(data.from);
             this.scene.stop(data.from);
+            console.log('stopped '+data.from);
             timedEvent.paused = false;
         }, [wipe_mask], this);
         tween.restart();
@@ -50,6 +51,7 @@ export class Transition extends Phaser.Scene{
                 this.scene.stop();
             }, [wipe_mask], this); 
             this.scene.launch(data.to, data.data);
+            this.scene.pause(data.to);
             tween.restart();
         }, [], this);
         timedEvent.paused=true;
