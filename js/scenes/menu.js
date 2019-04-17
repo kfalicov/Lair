@@ -91,7 +91,7 @@ class MainMenu extends Phaser.Scene {
         //    this.distortPipeline = this.sys.game.renderer.addPipeline('Distort', shader); 
         //}
         //this.distortPipeline.setFloat2('resolution', this.game.config.width, this.game.config.height);
-        
+        this.scene.resume();
     }
 
     update()

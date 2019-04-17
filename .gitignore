@@ -1,5 +1,6 @@
 js/jsconfig.json
 defs/
+assets/images/ui/buttons/
 *.afphoto
 *.kra
 *.kra~
