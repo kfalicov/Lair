@@ -2,7 +2,7 @@
     "undo": {
         "name":"Undo",
         "cost":150,
-        "tooltip":"Removes the last item placed."
+        "tooltip":"Removes the last item\nplaced."
     },
     "delete": {
         "name":"Delete",
@@ -12,7 +12,7 @@
     "swap": {
         "name":"Swap",
         "cost":200,
-        "tooltip":"The current item to place\nis swapped out."
+        "tooltip":"The current item to\nplace is swapped out."
     },
     "confuse": {
         "name":"Confuse",
@@ -27,7 +27,7 @@
     "info": {
         "name":"Info",
         "cost":0,
-        "tooltip":"Shows you how things work."
+        "tooltip":"Shows you how things\nwork."
     },
     "laser": {
         "name":"Laser",

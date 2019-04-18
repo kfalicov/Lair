@@ -423,7 +423,6 @@ export class ClassicMode extends Phaser.Scene {
 
         let placeables=[
             function(pointer, direction, scene){
-                console.log(scene.abilities);
                 updateMoneyDisplay(scene.money-=scene.abilities.laser.cost);
                 return scene.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, direction);
             },
@@ -458,10 +457,21 @@ export class ClassicMode extends Phaser.Scene {
          * ENEMY AND TARGET PLACEMENT
          */
         let requiredCaptureTime = 200;
-        let num_enemies = Math.min(2+Math.floor(data.difficulty/2),6);
+        let num_enemies = Math.min(2+Math.max(Math.floor((data.difficulty-1)/3),0),7);
         let speedRange = [150,200];
+        let speedmod=0;
+        if(data.difficulty<4){
+            speedmod=(data.difficulty%4)*33;
+        }else if(data.difficulty<16){
+            speedmod = data.difficulty*10+((data.difficulty-1)%3)*50;
+        }else{
+            speedmod=100+(data.difficulty-16)*33;
+        }
+        //let speedRange = [150,200]
+
+        
         let angleRange = [20,70];
-        let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31];
+        let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31, 0xffffff];
         for(var i = 0; i<num_enemies; i++){
             var b = this.enemies.create(0,0,'info_button');
             b.setBounce(1,1).setCollideWorldBounds(true);
@@ -471,7 +481,7 @@ export class ClassicMode extends Phaser.Scene {
             b.setData('captureTime',0);
             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
             angle = angle+(90*Phaser.Math.Between(0,3));
-            let speed = Phaser.Math.Between(speedRange[0],speedRange[1])+(20*data.difficulty);
+            let speed = Phaser.Math.Between(speedRange[0],speedRange[1])+speedmod;
             b.originalSpeed = speed;
             this.physics.velocityFromAngle(angle,speed,b.body.velocity);
             this.physics.add.existing(b);

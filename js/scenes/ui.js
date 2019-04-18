@@ -7,7 +7,7 @@ export class UI extends Phaser.Scene{
     preload()
     {
         this.load.atlas('buttons','assets/images/ui/buttons.png', 'assets/images/ui/buttons_atlas.json');
-        this.load.json('costs', 'assets/config/costs.json');
+        this.load.json('abilities', 'assets/config/abilities.json');
     }
     create(data)
     {
@@ -58,7 +58,7 @@ export class UI extends Phaser.Scene{
         let lastpressed = null;
         let buttons = [];
         let tooltipcam = this.cameras.add(0,0, 256, 120);
-        tooltipcam.setScroll(0,-100);
+        tooltipcam.setScroll(0,-600);
         tooltipcam.setVisible(false);
         let titleconf = {
             fontFamily: '"Roboto Mono", monospace',
@@ -72,9 +72,9 @@ export class UI extends Phaser.Scene{
             stroke:"#686868",
             fontSize:14,
         }
-        let tooltiptitle = this.add.text(0,-100,'Name', titleconf).setOrigin(0);
-        let tooltipcost = this.add.text(150,-100,'Cost', titleconf).setOrigin(1,0).setColor('#ffdd00');
-        let tooltipdesc = this.add.text(0,-70, 'Description', subtitleconf);
+        let tooltiptitle = this.add.text(0,-600,'Name', titleconf).setOrigin(0);
+        let tooltipcost = this.add.text(150,-600,'Cost', titleconf).setOrigin(1,0).setColor('#ffdd00');
+        let tooltipdesc = this.add.text(0,-570, 'Description', subtitleconf);
 
         let showTooltipTimer = null;
         let hideTooltipTimer = null;
@@ -95,11 +95,9 @@ export class UI extends Phaser.Scene{
                 tooltiptitle.setText(abilities[names[i]].name);
                 tooltipcost.setText('$'+abilities[names[i]].cost);
                 tooltipdesc.setText(abilities[names[i]].tooltip);
-                tooltipcam.setPosition(button.x-20, button.y-tooltipcam.height);
-                console.log('went over a button');
+                tooltipcam.setPosition(button.x-(30*i), button.y-tooltipcam.height);
                 if(showTooltipTimer === null){
                     showTooltipTimer = this.time.delayedCall(500, ()=>{
-                        console.log('showed the tooltip');
                         tooltipcam.setVisible(true);
                     });
                 }else{
@@ -114,13 +112,11 @@ export class UI extends Phaser.Scene{
                 if(showTooltipTimer !== null && showTooltipTimer.getProgress()<1){
                     showTooltipTimer.paused = true;
                     hideTooltipTimer = this.time.delayedCall(200, ()=>{
-                        console.log('left before showing tooltip');
                         showTooltipTimer.remove();
                         showTooltipTimer = null;
                     });
                 }else{
                     hideTooltipTimer = this.time.delayedCall(200, ()=>{
-                        console.log('hid the tooltip');
                         hideTooltipTimer.remove();
                         hideTooltipTimer = null;
                         showTooltipTimer.remove();

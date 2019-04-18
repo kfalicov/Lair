@@ -6,12 +6,12 @@ export class Transition extends Phaser.Scene{
 
     preload()
     {
-        this.load.image('menu_background', 'assets/images/menu/menu_background.png');
+        this.load.image('lair_view', 'assets/images/menu/lair_view.png');
         this.load.image('wipe_mask', 'assets/images/effect/wipe_mask.png');
     }
     create(data)
     {
-        let background = this.add.sprite(0, 0, 'menu_background');
+        let background = this.add.sprite(0, 0, 'lair_view');
         background.setOrigin(0, 0);
 
         let wipe_mask = this.add.image(800,0,'wipe_mask').setOrigin(0,0);
