@@ -8,6 +8,11 @@ export class UI extends Phaser.Scene{
     {
         this.load.atlas('buttons','assets/images/ui/buttons.png', 'assets/images/ui/buttons_atlas.json');
         this.load.json('abilities', 'assets/config/abilities.json');
+
+        
+        this.load.image('clearflag', 'assets/images/ui/clearflag.png');
+        this.load.image('loseflag', 'assets/images/ui/bankruptflag.png');
+        this.load.image('menuwhite', 'assets/images/menu/menu_white.png');
     }
     create(data)
     {
@@ -52,6 +57,37 @@ export class UI extends Phaser.Scene{
                 setUnpressed(button);
             }
         ];
+
+        let clearflag = this.add.tileSprite(260,300,1,70, 'clearflag').setOrigin(0,0.5).setVisible(false);
+        let loseflag = this.add.sprite(400,300,'loseflag').setVisible(false);
+        let cleartween = this.tweens.add({
+            targets: [clearflag],
+            width:280,
+            duration:300,
+            
+            paused: true,
+            //completeDelay: 500,
+        });
+
+        this.events.once('Clear', (args)=>{
+            clearflag.setVisible(true);
+            cleartween.setCallback('onComplete', ()=>{
+                console.log(this);
+                console.log(args);
+                this.input.once('pointerdown', ()=>{
+                    this.scene.launch('Transition', {
+                        from:'ClassicMode',
+                        to: 'ClassicMode',
+                        data: {
+                            money: args[0],
+                            difficulty: args[1]+1
+                        }
+                    });
+                });
+                
+            },[clearflag], this);
+            cleartween.play();
+        });
 
         let abilities = this.cache.json.get('abilities');
 
@@ -127,6 +163,33 @@ export class UI extends Phaser.Scene{
             })
             buttons.push(button);
         }
+
+        let flash = this.add.tileSprite(400,300,800,600,'menuwhite').setVisible(false);
+        let flashtween = this.tweens.add({
+            targets:flash,
+            alpha:0,
+            duration:500,
+            paused:true
+        });
+
+        this.events.once('Lose', (args)=>{
+            flash.setVisible(true);
+            flashtween.play();
+            for(let i=0;i<buttons.length;i++){
+                buttons[i].setVisible(false);
+            }
+            this.time.delayedCall(2000, ()=>{
+                loseflag.setVisible(true);
+                this.input.once('pointerdown', ()=>{
+                    this.scene.launch('Transition', {
+                        from:'ClassicMode',
+                        to: 'MainMenu'
+                    });
+                });
+                
+            });
+            //cleartween.play();
+        });
 
         this.input.on('pointerup', () => {
             setUnpressed(lastpressed);

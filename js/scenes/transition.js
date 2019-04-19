@@ -11,7 +11,7 @@ export class Transition extends Phaser.Scene{
     }
     create(data)
     {
-        let background = this.add.sprite(0, 0, 'lair_view');
+        let background = this.add.sprite(0, 0, 'lair_view').disableInteractive();
         background.setOrigin(0, 0);
 
         let wipe_mask = this.add.image(800,0,'wipe_mask').setOrigin(0,0);
@@ -22,40 +22,42 @@ export class Transition extends Phaser.Scene{
         let tween = this.tweens.add({
             targets: wipe_mask,
             x:-473,
-            duration:1000,
+            duration:800,
             paused: true,
         });
+
+        let src = this.scene.get(data.from);
+        let dest = this.scene.get(data.to);
 
         //this callback is performed as soon as this scene is the only one showing.
         tween.setCallback('onComplete', function(){
             this.scene.stop('UI');
-            this.scene.pause(data.from);
             this.scene.stop(data.from);
             console.log('stopped '+data.from);
-            timedEvent.paused = false;
-        }, [wipe_mask], this);
-        tween.restart();
 
-        //this timed event transitions to the next screen after 1 second.
-        let timedEvent = this.time.delayedCall(1000, function(){
-            rendermask.invertAlpha = true;
-            //and as soon as the transition is complete, do this
-            tween.setCallback('onComplete', function(){
-                console.log('stopped '+this.scene.key);
-                //console.log(data);
-                if(data.hasOwnProperty('data') && data.data.difficulty===0){
-                        this.scene.launch('Dialog', {
-                            text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
-                        });
-                }
-                this.scene.stop();
-            }, [wipe_mask], this); 
+            background.setInteractive();
             this.scene.launch(data.to, data.data);
-            this.scene.pause(data.to);
-            tween.restart();
-        }, [], this);
-        timedEvent.paused=true;
-        
+
+            //this transitions to the next scene on click
+            this.input.once('pointerdown', function(){
+                background.disableInteractive();
+                rendermask.invertAlpha = true;
+                //and as soon as the transition is complete, do this
+                tween.setCallback('onComplete', function(){
+                    console.log('stopped '+this.scene.key);
+                    //console.log(data);
+                    if(data.hasOwnProperty('data') && data.data.difficulty===0){
+                            this.scene.launch('Dialog', {
+                                text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
+                            });
+                    }
+                    this.scene.stop('Transition');
+                    
+                }, [wipe_mask], this); 
+                tween.restart();
+            }, this);
+        }, [wipe_mask], this);
+        tween.restart();        
     }
     update(){
         

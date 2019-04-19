@@ -1,4 +1,5 @@
-//import Shader from '../shader/pipelines.js';
+import  {GrayscalePipeline} from '../shader/pipelines.js'
+
 var directions = {
     NONE: -1, //not reflected at all
     SOUTH: 0,   //(north+2)%4
@@ -98,6 +99,7 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('mirror_ui', 'assets/images/classic/mirror_ui.png');
 
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
+        //this.load.glsl('grayscale', 'js/shader/grayscale.fs');
         this.load.json('abilities', 'assets/config/abilities.json');
     }
 
@@ -358,6 +360,36 @@ export class ClassicMode extends Phaser.Scene {
         let countdown = undefined;
         let number = undefined;
 
+        let cam = this.cameras.main;
+        let camx=0;
+        let camy=0;
+        let losecamera = this.tweens.add({
+            targets: this.cameras.main,
+            props:{
+                x:{
+                    value:{
+                        getEnd: ()=>{return camx = Phaser.Math.Between(-80,80)},
+                        getStart: ()=>{return camx}
+                    },
+                    duration:3000, 
+                    repeat:-1, 
+                    ease: 'Quad.easeInOut'
+                },
+                y:{
+                    value:{
+                        getEnd: ()=>{return camy = Phaser.Math.Between(-60,60)},
+                        getStart: ()=>{return camy}
+                    },
+                    duration:4000, 
+                    repeat:-1, 
+                    ease: 'Quad.easeInOut'
+                },
+            },
+            onRepeat: (twee)=>{
+            },
+            paused:true
+        });
+
         let updateMoneyDisplay = function(money){
             let result = '$'+String(Math.abs(money)).padStart(7,' ');
             if(money<=0){
@@ -385,12 +417,15 @@ export class ClassicMode extends Phaser.Scene {
                         callback: function(){
                             numbereffect.restart();
                             if(countdown && countdown.repeatCount===0){
+                                //LOSE GAME
+                                
+                                this.cameras.main.zoom=1.25
+                                losecamera.play();
+                                scene.room.flipY=true;
+                                scene.cameras.main.setRenderToTexture('Grayscale');
                                 number.destroy();
                                 this.scene.stop('Dialog');
-                                this.scene.launch('Transition', {
-                                    from:this.scene.key, 
-                                    to:'MainMenu'
-                                });
+                                this.scene.get('UI').events.emit('Lose');
                             }else if(countdown){
                                 number.setText(countdown.repeatCount);
                             }
@@ -444,13 +479,16 @@ export class ClassicMode extends Phaser.Scene {
         //groups representing placed items in the room
         this.laserGrid = this.physics.add.staticGroup();
         this.mirrors = this.physics.add.staticGroup();
-        this.queueEnd = false;
 
         //enemies in the room
         this.enemies = this.physics.add.group();
+        //LEVEL CLEAR
         this.enemies.removeCallback = function(child){
-            if(this.children.size===0){
-                this.scene.queueEnd = true;
+            //checks for active transition, because otherwise it might start the thing twice
+            if(this.children.size===0 && !scene.scene.isActive('Transition')){
+                background.disableInteractive();
+                scene.scene.get('UI').events.emit('Clear', [scene.money, data.difficulty]);
+                scene.enemies.removeCallback = undefined;
             }
         };
         /**
@@ -604,6 +642,15 @@ export class ClassicMode extends Phaser.Scene {
             direction = (direction+3)%4;
             updateDirection(direction);
         }, this);
+        let shader = false;
+        this.input.keyboard.on('keydown_S', ()=>{
+            shader = !shader;
+            if(shader){
+                scene.cameras.main.setRenderToTexture('Grayscale');
+            }
+            else
+                this.cameras.main.clearRenderToTexture();  
+        })
 
         let deleteMode=false;
         let confuseMode=false;
@@ -828,6 +875,11 @@ export class ClassicMode extends Phaser.Scene {
             }
         }, this);
         */
+        let grayscalePipeline = this.sys.game.renderer.pipelines['Grayscale'];
+        if(!grayscalePipeline){
+            let grayscalePipeline = this.game.renderer.addPipeline('Grayscale', new GrayscalePipeline(this.game));
+        }
+        
         this.input.keyboard.once('keydown_N', function(event){
             this.scene.launch('Transition', {
                 from:this.scene.key,
@@ -838,14 +890,19 @@ export class ClassicMode extends Phaser.Scene {
                 }
             });
         }, this);
-        this.input.keyboard.once('keydown_R', function(event){
-            this.scene.start('ClassicMode', this.scene.settings.data);
-            //this.scene.pause('ClassicMode');
-        },this);
+        this.input.keyboard.once('keydown_Y', () =>{
+            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
+            background.disableInteractive();
+        });
+        
+        this.input.keyboard.once('keydown_P', () =>{
+            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
+            background.disableInteractive();
+        })
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
             this.scene.launch('Transition', {
-                from:this.scene.key, 
+                from:'ClassicMode', 
                 to:'MainMenu'
             });
         }, this);
@@ -942,17 +999,6 @@ export class ClassicMode extends Phaser.Scene {
                 this.shadows.fillPoints([r1.getPointA(), r2.getPointA(),r2.getPointB(), r1.getPointB()],true);
             }
         },this);
-        if(this.queueEnd === true){
-            this.scene.launch('Transition', {
-                from:this.scene.key,
-                to: 'ClassicMode',
-                data: {
-                    money: this.money,
-                    difficulty: this.scene.settings.data.difficulty+1
-                }
-            });
-            this.queueEnd = false;
-        }
         //this.shaderPipeline.setFloat1('time', this.time.now);
         
         /**

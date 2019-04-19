@@ -56,8 +56,9 @@ class MainMenu extends Phaser.Scene {
     {   
         this.rt = this.add.renderTexture(0, 0, 800, 210).setVisible(false);
         this.rt.saveTexture('laserTexture');
-        this.partrt = this.add.renderTexture(0,0,800,256).setBlendMode(Phaser.BlendModes.Add).setVisible(false);
-        this.partrt.alpha =0.7;
+        this.partrt = this.add.renderTexture(0,0,800,256);//.setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+        this.partrt.alpha =1;
+        this.partrt.tint=0xffaaaa;
 
         let background = this.add.sprite(0, 0, 'menu_background');
         background.setOrigin(0, 0);
@@ -83,13 +84,13 @@ class MainMenu extends Phaser.Scene {
         var emitter = particles.createEmitter(
             {
                 frame: ['shard_1', 'shard_2', 'shard_3'],
-                x:0, y:20,
-                speed: 50,
-                lifespan: 1200,
+                x:0, y:10,
+                speed: 60,
+                lifespan: 900,
                 quantity: 8,
-                frequency: 100,
+                frequency: 10,
                 angle: {min: -80, max: -40},
-                scale: { start: .8, end: 0.01 },
+                scale: { start: .5, end: 0.01 },
                 //blendMode: Phaser.BlendModes.ADD,
                 emitZone: {type: 'random', source: line1}
             }
@@ -97,13 +98,13 @@ class MainMenu extends Phaser.Scene {
         var otheremitter = particles.createEmitter(
             {
                 frame: ['shard_1', 'shard_2', 'shard_3'],
-                x:0, y:-20,
-                speed: 50,
-                lifespan: 1200,
+                x:0, y:-10,
+                speed: 60,
+                lifespan: 900,
                 quantity: 8,
-                frequency: 100,
+                frequency: 10,
                 angle: {min: 40, max: 80},
-                scale: { start: .8, end: 0.01 },
+                scale: { start: .5, end: 0.01 },
                 //blendMode: Phaser.BlendModes.ADD,
                 emitZone: {type: 'random', source: line2}
             }
@@ -213,7 +214,7 @@ class MainMenu extends Phaser.Scene {
 
         let classicbutton = this.add.sprite(100, 275, 'classic_button').setInteractive().setOrigin(0).setVisible(false);
         classicbutton.on('pointerup', ()=>{this.scene.launch('Transition', {
-            from: this.scene.key,
+            from: 'MainMenu',
             to: 'ClassicMode',
             data:{
                 money:1500,
