@@ -1,4 +1,5 @@
-//import Shader from '../shader/pipelines.js';
+import  {GrayscalePipeline} from '../shader/pipelines.js'
+
 var directions = {
     NONE: -1, //not reflected at all
     SOUTH: 0,   //(north+2)%4
@@ -98,6 +99,8 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('mirror_ui', 'assets/images/classic/mirror_ui.png');
 
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
+        //this.load.glsl('grayscale', 'js/shader/grayscale.fs');
+        this.load.json('abilities', 'assets/config/abilities.json');
     }
 
     destroyLaser(laser){
@@ -260,7 +263,7 @@ export class ClassicMode extends Phaser.Scene {
         let item = this.add.sprite(pointer.x, pointer.y, textureKey).disableInteractive();
         item.on('pointerdown', function(){
             this.destroyMirror(item);
-            this.updateMoneyDisplay(this.money-=200);
+            this.updateMoneyDisplay(this.money-=this.abilities.delete.cost);
         },this);
         item.incomingLasers = [];
         this.mirrors.add(item);
@@ -351,9 +354,41 @@ export class ClassicMode extends Phaser.Scene {
             color: '#ffdd00'
         }).setOrigin(1, 0.5);
 
+        this.abilities = this.cache.json.get('abilities');
+
         let scene = this;
         let countdown = undefined;
         let number = undefined;
+
+        let cam = this.cameras.main;
+        let camx=0;
+        let camy=0;
+        let losecamera = this.tweens.add({
+            targets: this.cameras.main,
+            props:{
+                x:{
+                    value:{
+                        getEnd: ()=>{return camx = Phaser.Math.Between(-80,80)},
+                        getStart: ()=>{return camx}
+                    },
+                    duration:3000, 
+                    repeat:-1, 
+                    ease: 'Quad.easeInOut'
+                },
+                y:{
+                    value:{
+                        getEnd: ()=>{return camy = Phaser.Math.Between(-60,60)},
+                        getStart: ()=>{return camy}
+                    },
+                    duration:4000, 
+                    repeat:-1, 
+                    ease: 'Quad.easeInOut'
+                },
+            },
+            onRepeat: (twee)=>{
+            },
+            paused:true
+        });
 
         let updateMoneyDisplay = function(money){
             let result = '$'+String(Math.abs(money)).padStart(7,' ');
@@ -382,12 +417,15 @@ export class ClassicMode extends Phaser.Scene {
                         callback: function(){
                             numbereffect.restart();
                             if(countdown && countdown.repeatCount===0){
+                                //LOSE GAME
+                                
+                                this.cameras.main.zoom=1.25
+                                losecamera.play();
+                                scene.room.flipY=true;
+                                scene.cameras.main.setRenderToTexture('Grayscale');
                                 number.destroy();
                                 this.scene.stop('Dialog');
-                                this.scene.launch('Transition', {
-                                    from:this.scene.key, 
-                                    to:'MainMenu'
-                                });
+                                this.scene.get('UI').events.emit('Lose');
                             }else if(countdown){
                                 number.setText(countdown.repeatCount);
                             }
@@ -420,9 +458,11 @@ export class ClassicMode extends Phaser.Scene {
 
         let placeables=[
             function(pointer, direction, scene){
+                updateMoneyDisplay(scene.money-=scene.abilities.laser.cost);
                 return scene.makeLaserOrigin(room, {x:pointer.x, y:pointer.y}, direction);
             },
             function(pointer, direction, scene){
+                updateMoneyDisplay(scene.money-=scene.abilities.mirror.cost);
                 return scene.makeItem(room, {x:pointer.x, y:pointer.y}, 'mirror', direction);
             },
             function(){
@@ -439,23 +479,37 @@ export class ClassicMode extends Phaser.Scene {
         //groups representing placed items in the room
         this.laserGrid = this.physics.add.staticGroup();
         this.mirrors = this.physics.add.staticGroup();
-        this.queueEnd = false;
 
         //enemies in the room
         this.enemies = this.physics.add.group();
+        //LEVEL CLEAR
         this.enemies.removeCallback = function(child){
-            if(this.children.size===0){
-                this.scene.queueEnd = true;
+            //checks for active transition, because otherwise it might start the thing twice
+            if(this.children.size===0 && !scene.scene.isActive('Transition')){
+                background.disableInteractive();
+                scene.scene.get('UI').events.emit('Clear', [scene.money, data.difficulty]);
+                scene.enemies.removeCallback = undefined;
             }
         };
         /**
          * ENEMY AND TARGET PLACEMENT
          */
         let requiredCaptureTime = 200;
-        let num_enemies = Math.min(2+Math.floor(data.difficulty/2),6);
+        let num_enemies = Math.min(2+Math.max(Math.floor((data.difficulty-1)/3),0),7);
         let speedRange = [150,200];
+        let speedmod=0;
+        if(data.difficulty<4){
+            speedmod=(data.difficulty%4)*33;
+        }else if(data.difficulty<16){
+            speedmod = data.difficulty*10+((data.difficulty-1)%3)*50;
+        }else{
+            speedmod=100+(data.difficulty-16)*33;
+        }
+        //let speedRange = [150,200]
+
+        
         let angleRange = [20,70];
-        let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31];
+        let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31, 0xffffff];
         for(var i = 0; i<num_enemies; i++){
             var b = this.enemies.create(0,0,'info_button');
             b.setBounce(1,1).setCollideWorldBounds(true);
@@ -465,7 +519,7 @@ export class ClassicMode extends Phaser.Scene {
             b.setData('captureTime',0);
             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
             angle = angle+(90*Phaser.Math.Between(0,3));
-            let speed = Phaser.Math.Between(speedRange[0],speedRange[1])+(20*data.difficulty);
+            let speed = Phaser.Math.Between(speedRange[0],speedRange[1])+speedmod;
             b.originalSpeed = speed;
             this.physics.velocityFromAngle(angle,speed,b.body.velocity);
             this.physics.add.existing(b);
@@ -588,6 +642,15 @@ export class ClassicMode extends Phaser.Scene {
             direction = (direction+3)%4;
             updateDirection(direction);
         }, this);
+        let shader = false;
+        this.input.keyboard.on('keydown_S', ()=>{
+            shader = !shader;
+            if(shader){
+                scene.cameras.main.setRenderToTexture('Grayscale');
+            }
+            else
+                this.cameras.main.clearRenderToTexture();  
+        })
 
         let deleteMode=false;
         let confuseMode=false;
@@ -689,21 +752,22 @@ export class ClassicMode extends Phaser.Scene {
                     }else if(lastItemPlaced.type===1){
                         scene.destroyMirror(lastItemPlaced.item);
                     }
-                    updateMoneyDisplay(scene.money-=150);
+                    //undo cost
+                    updateMoneyDisplay(scene.money-=this.abilities.undo.cost);
                 }
             }
         }
         this.swapItem = function(){
             nextItemQueue[0] = 1-nextItemQueue[0];
             updatePreviews();
-            updateMoneyDisplay(scene.money-=200);
+            updateMoneyDisplay(scene.money-=this.abilities.swap.cost);
         }
         this.slow = function(){
             this.enemies.children.each(function(enemy){
                 enemy.originalSpeed = Math.min(100,enemy.originalSpeed);
                 this.physics.velocityFromRotation(enemy.body.angle, Math.min(100,enemy.originalSpeed), enemy.body.velocity);
             },this);
-            updateMoneyDisplay(scene.money-=3000);
+            updateMoneyDisplay(scene.money-=this.abilities.slow.cost);
         }
 
         /**
@@ -724,7 +788,7 @@ export class ClassicMode extends Phaser.Scene {
                         if(enemy.stun){
                             enemy.stun.remove();
                         }
-                        enemy.stun = this.time.delayedCall(800, ()=>{
+                        enemy.stun = this.time.delayedCall(1000, ()=>{
                             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
                             angle = angle+(90*Phaser.Math.Between(0,3));
                             this.physics.velocityFromAngle(angle,enemy.originalSpeed,enemy.body.velocity);
@@ -732,14 +796,14 @@ export class ClassicMode extends Phaser.Scene {
                     }
                 }, this);
                 if(hitenemy){
-                    updateMoneyDisplay(this.money-=500);
+                    updateMoneyDisplay(this.money-=this.abilities.confuse.cost);
                 }
                 this.toggleFunction('confuse');
                 this.scene.get('UI').events.emit('StopConfusing');
             }else{
                 //places the new item
-                updateMoneyDisplay(this.money-=100);
                 let nextItem = nextItemQueue.shift();
+                //updateMoneyDisplay(this.money-=100);
                 lastItemQueue.push({
                     item:placeables[nextItem](nextItem===0? beampreview : mirrorpreview, direction, this),
                     cost:100,
@@ -811,6 +875,11 @@ export class ClassicMode extends Phaser.Scene {
             }
         }, this);
         */
+        let grayscalePipeline = this.sys.game.renderer.pipelines['Grayscale'];
+        if(!grayscalePipeline){
+            let grayscalePipeline = this.game.renderer.addPipeline('Grayscale', new GrayscalePipeline(this.game));
+        }
+        
         this.input.keyboard.once('keydown_N', function(event){
             this.scene.launch('Transition', {
                 from:this.scene.key,
@@ -821,14 +890,19 @@ export class ClassicMode extends Phaser.Scene {
                 }
             });
         }, this);
-        this.input.keyboard.once('keydown_R', function(event){
-            this.scene.start('ClassicMode', this.scene.settings.data);
-            //this.scene.pause('ClassicMode');
-        },this);
+        this.input.keyboard.once('keydown_Y', () =>{
+            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
+            background.disableInteractive();
+        });
+        
+        this.input.keyboard.once('keydown_P', () =>{
+            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
+            background.disableInteractive();
+        })
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
             this.scene.launch('Transition', {
-                from:this.scene.key, 
+                from:'ClassicMode', 
                 to:'MainMenu'
             });
         }, this);
@@ -925,17 +999,6 @@ export class ClassicMode extends Phaser.Scene {
                 this.shadows.fillPoints([r1.getPointA(), r2.getPointA(),r2.getPointB(), r1.getPointB()],true);
             }
         },this);
-        if(this.queueEnd === true){
-            this.scene.launch('Transition', {
-                from:this.scene.key,
-                to: 'ClassicMode',
-                data: {
-                    money: this.money,
-                    difficulty: this.scene.settings.data.difficulty+1
-                }
-            });
-            this.queueEnd = false;
-        }
         //this.shaderPipeline.setFloat1('time', this.time.now);
         
         /**

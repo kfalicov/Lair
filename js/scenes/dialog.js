@@ -15,7 +15,7 @@ class Dialog extends Phaser.Scene {
     }
     create(settings)
     {   
-        var content = wrap(settings.text,50);
+        var content = wrap(settings.text,40);
         //I wrote this regex! it matches exactly 3 lines without including the newlines before and after.
         var numLines = 4;
         let pages = content.match(
@@ -104,7 +104,7 @@ class Dialog extends Phaser.Scene {
             }
             //timer.paused = true;
         },this);
-        this.cameras.main.setPosition(0, this.sys.canvas.height-150);
+        this.cameras.main.setPosition(170, this.sys.canvas.height-150);
     }
 
     update()

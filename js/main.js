@@ -3,7 +3,6 @@ import {ClassicMode} from './scenes/classic.js';
 import {Transition} from './scenes/transition.js'
 import {UI} from './scenes/ui.js'
 import Dialog from './scenes/dialog.js';
-
 let config = {
     type: Phaser.WEBGL,
     width: 800,
@@ -23,3 +22,4 @@ let config = {
 };
 
 let game = new Phaser.Game(config);
+
