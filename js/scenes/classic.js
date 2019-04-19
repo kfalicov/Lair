@@ -336,10 +336,12 @@ export class ClassicMode extends Phaser.Scene {
          * UI STUFF
          */
         let background = this.add.tileSprite(0,0,this.sys.canvas.width, this.sys.canvas.height,'background').setOrigin(0).setInteractive();
-
+        this.background = background;
         let ROOM_PADDING_L = 16;
         let ROOM_HEIGHT = 0;
         let room = this.add.tileSprite(40,60+ROOM_HEIGHT, 720, 480, 'floor').setOrigin(0);
+        room.setScrollFactor(0);
+        
         this.room = room;
         let vignette = this.add.image(40,60+ROOM_HEIGHT, 'vignette').setOrigin(0);
         let room_border = this.add.image(room.getTopLeft().x-3,room.getTopLeft().y-3,'room_border').setOrigin(0);
@@ -384,6 +386,13 @@ export class ClassicMode extends Phaser.Scene {
                     repeat:-1, 
                     ease: 'Quad.easeInOut'
                 },
+                rotation:{
+                    value:.002,
+                    repeat:-1,
+                    yoyo:true,
+                    duration:2000,
+                    ease: 'Quad.easeInOut'
+                }
             },
             onRepeat: (twee)=>{
             },
@@ -418,10 +427,12 @@ export class ClassicMode extends Phaser.Scene {
                             numbereffect.restart();
                             if(countdown && countdown.repeatCount===0){
                                 //LOSE GAME
-                                
-                                this.cameras.main.zoom=1.25
+                                this.cameras.main.zoom=1.25;
+                                this.background.disableInteractive();
                                 losecamera.play();
-                                scene.room.flipY=true;
+                                //scene.room.clearRenderToTexture();
+                                scene.room.resetPipeline();
+                                //scene.room.flipY=true;
                                 scene.cameras.main.setRenderToTexture('Grayscale');
                                 number.destroy();
                                 this.scene.stop('Dialog');
