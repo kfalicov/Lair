@@ -25,7 +25,6 @@ class MainMenu extends Phaser.Scene {
         this.load.image('menu_white', 'assets/images/menu/menu_white.png');
         this.load.image('bubble_noise', 'assets/images/menu/bubble_noise.png');
 
-        this.load.image('cross_lasers', 'assets/images/menu/menu_lasers.png');
         this.load.image('close', 'assets/images/menu/close.png');
         this.load.image('aspect_narrower', 'assets/images/menu/aspect_narrower.png');
 
@@ -33,22 +32,19 @@ class MainMenu extends Phaser.Scene {
         this.load.atlas('shards', 'assets/images/particle/shards.png', 'assets/images/particle/shards_atlas.json');
 
         //'start' submenu images
-        this.load.image('laser_top_bg', 'assets/images/menu/laser_top_bg.png');
-        this.load.image('laser_top_fg', 'assets/images/menu/laser_top_fg.png')
         this.load.image('classic_button', 'assets/images/menu/classic_button.png');
         this.load.image('puzzle_button', 'assets/images/menu/puzzle_button.png');
         this.load.image('defense_button', 'assets/images/menu/defense_button.png');
     
         //option submenu images
-        this.load.image('laser_mid_bg', 'assets/images/menu/laser_mid_bg.png');
-        this.load.image('laser_mid_fg', 'assets/images/menu/laser_mid_fg.png')
 
         //about submenu images
-        this.load.image('laser_bot_bg', 'assets/images/menu/laser_bot_bg.png');
-        this.load.image('laser_bot_fg', 'assets/images/menu/laser_bot_fg.png');
+
         //this.load.glsl('distort', 'js/shader/distort.glsl');
 
         this.load.image('test_image', 'assets/images/menu/test_image.png');
+        
+        //the imperfections in the laser beam
         this.load.image('big_laser_fg', 'assets/images/menu/big_laser_fg.png');
 
     }
@@ -213,14 +209,17 @@ class MainMenu extends Phaser.Scene {
         let submenu = [];
 
         let classicbutton = this.add.sprite(100, 275, 'classic_button').setInteractive().setOrigin(0).setVisible(false);
-        classicbutton.on('pointerup', ()=>{this.scene.launch('Transition', {
-            from: 'MainMenu',
-            to: 'ClassicMode',
-            data:{
-                money:1500,
-                difficulty:0
+        classicbutton.on('pointerup', ()=>{
+            this.input.enabled = false;
+            this.scene.launch('Transition', {
+                from: 'MainMenu',
+                to: 'ClassicMode',
+                data:{
+                    money:1500,
+                    difficulty:0
+                }
             }
-        })},this);
+        )},this);
         let puzzlebutton = this.add.sprite(300, 270, 'puzzle_button').setInteractive().setOrigin(0).setVisible(false);
         puzzlebutton.on('pointerup', ()=>{console.log('puzzle')},this);
 

@@ -6,3 +6,5 @@ assets/images/ui/buttons/
 *.kra~
 *.zip
 *.psd
+*.aup
+*.au

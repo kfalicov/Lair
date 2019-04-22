@@ -64,7 +64,7 @@ div{
     height: auto !important;
     padding-top: 25px;
 
-    background-image:url(none);
+    /* background-image:url(none); */
     background-repeat: no-repeat;
 }
 

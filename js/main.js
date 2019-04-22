@@ -1,6 +1,6 @@
 import MainMenu from './scenes/menu.js';
 import {ClassicMode} from './scenes/classic.js';
-import {Transition} from './scenes/transition.js'
+import {Transition, TransitionRender} from './scenes/transition.js'
 import {UI} from './scenes/ui.js'
 import Dialog from './scenes/dialog.js';
 let config = {
@@ -13,12 +13,12 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            //fps:60,
+            fps:120,
             //debug:true
         }
     },
     //scene: ClassicMode //use this to test specific scenes directly
-    scene: [MainMenu, ClassicMode, UI, Transition, Dialog]
+    scene: [MainMenu, ClassicMode, UI, Transition, TransitionRender, Dialog]
 };
 
 let game = new Phaser.Game(config);
