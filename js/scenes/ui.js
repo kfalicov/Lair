@@ -182,10 +182,9 @@ export class UI extends Phaser.Scene{
                 loseflag.setVisible(true);
                 this.scene.get('ClassicMode').cameras.main.zoom=1.25;
                 this.input.once('pointerdown', ()=>{
-                    console.log('clicked bankrupt');
                     this.scene.launch('Transition', {
                         from:['ClassicMode','UI'],
-                        to: 'MainMenu'
+                        to: 'MainMenu',
                     });
                 });
                 

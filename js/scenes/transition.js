@@ -191,17 +191,9 @@ export class Transition extends Phaser.Scene{
             paused: true,
         }); */
 
-        let src = this.scene.get(data.from);
-        let dest = this.scene.get(data.to);
-
         //this callback is performed as soon as this scene is the only one showing.
-        this.time.delayedCall(800, function(){
-            
-        }, [null], this);
-        //tween.restart();  
         this.events.once('TransitionOver',()=>{
             if(Array.isArray(data.from)){
-                console.log('is an array');
                 data.from.forEach(element => {
                     this.scene.stop(element);
                 });
@@ -210,31 +202,33 @@ export class Transition extends Phaser.Scene{
             }
             //console.log('stopped '+data.from);
 
-            background.setInteractive();
             this.scene.launch(data.to, data.data);
             activeTween.play();
             this.sound.play('drive');
-            this.time.delayedCall(1450, ()=>this.sound.play('screech'));    
-            background.once('pointerdown', function(){
-                background.removeInteractive();
-                //rendermask.invertAlpha = true;
-                this.scene.get(data.to).scene.resume();
-                this.scene.get('TransitionRender').events.emit('StartTransition');
-                //and as soon as the transition is complete, do this
-                this.events.once('TransitionOver', ()=>{
-                    //console.log('stopped '+this.scene.key);
-                    //console.log(data);
-                    if(data.hasOwnProperty('data') && data.data.difficulty===0){
-                            this.scene.launch('Dialog', {
-                                text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
-                            });
-                    }
-                    this.scene.stop('TransitionRender');
-                    this.scene.stop('Transition');
-                    
-                }, [], this);
-            }, this); 
+            this.time.delayedCall(1450, ()=>this.sound.play('screech'));
+            activeTween.setCallback('onComplete',()=>{background.setInteractive()},[],this);    
         });
+
+        //when the background is clicked, the next scene is resumed,
+        //and the transition out is started
+        background.once('pointerdown', function(){
+            background.disableInteractive();
+            //rendermask.invertAlpha = true;
+            this.scene.resume(data.to);
+            this.scene.get('TransitionRender').events.emit('StartTransition');
+            //and as soon as the transition is complete, do this
+            this.events.once('TransitionOver', ()=>{
+                //console.log('stopped '+this.scene.key);
+                //console.log(data);
+                if(data.hasOwnProperty('data') && data.data.difficulty===0){
+                        this.scene.launch('Dialog', {
+                            text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
+                        });
+                }
+                this.scene.get(data.to).events.emit('TransitionOver');
+                this.scene.stop();
+            }, [], this);
+        }, this); 
     }
     update(){
         
@@ -272,6 +266,10 @@ export class TransitionRender extends Phaser.Scene{
         },[], this);
         this.events.once('StartTransition',()=>{
             rendermask.invertAlpha = true;
+            tween.setCallback('onComplete', ()=>{
+                this.scene.get('Transition').events.emit('TransitionOver');
+                this.scene.stop();
+            }, [], this);
             tween.restart();
         });
     }

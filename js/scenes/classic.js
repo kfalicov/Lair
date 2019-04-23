@@ -669,7 +669,8 @@ export class ClassicMode extends Phaser.Scene {
 
         let deleteMode=false;
         let confuseMode=false;
-        this.placeMode = true;
+        this.placeMode = false;
+        this.events.once('TransitionOver',()=>{this.placeMode=true; this.scene.resume()});
         let mirrorlist=this.mirrors;
         
         this.toggleFunction = function(mode){
@@ -896,26 +897,6 @@ export class ClassicMode extends Phaser.Scene {
             let grayscalePipeline = this.game.renderer.addPipeline('Grayscale', new GrayscalePipeline(this.game));
         }
         
-        this.input.keyboard.once('keydown_N', function(event){
-            this.scene.launch('Transition', {
-                from:this.scene.key,
-                to: 'ClassicMode',
-                data: {
-                    money: this.money,
-                    difficulty: this.scene.settings.data.difficulty+1
-                }
-            });
-        }, this);
-        this.input.keyboard.once('keydown_Y', () =>{
-            this.placeMode = false;
-            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
-            background.disableInteractive();
-        });
-        
-        this.input.keyboard.once('keydown_P', () =>{
-            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
-            background.disableInteractive();
-        })
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
             this.scene.launch('Transition', {
