@@ -1,7 +1,7 @@
 export class UI extends Phaser.Scene{
     constructor()
     {
-        super('UI');
+        super({key: 'UI', active: false});
     }
 
     preload()
@@ -72,11 +72,11 @@ export class UI extends Phaser.Scene{
         this.events.once('Clear', (args)=>{
             clearflag.setVisible(true);
             cleartween.setCallback('onComplete', ()=>{
-                console.log(this);
-                console.log(args);
+                //console.log(this);
+                //console.log(args);
                 this.input.once('pointerdown', ()=>{
                     this.scene.launch('Transition', {
-                        from:'ClassicMode',
+                        from:['ClassicMode','UI'],
                         to: 'ClassicMode',
                         data: {
                             money: args[0],
@@ -164,7 +164,7 @@ export class UI extends Phaser.Scene{
             buttons.push(button);
         }
 
-        let flash = this.add.tileSprite(400,300,800,600,'menuwhite').setVisible(false);
+        let flash = this.add.tileSprite(400,300,800,600,'menuwhite').setVisible(false).setInteractive();
         let flashtween = this.tweens.add({
             targets:flash,
             alpha:0,
@@ -178,12 +178,13 @@ export class UI extends Phaser.Scene{
             for(let i=0;i<buttons.length;i++){
                 buttons[i].setVisible(false);
             }
-            this.time.delayedCall(2000, ()=>{
+            this.time.delayedCall(2050, ()=>{
                 loseflag.setVisible(true);
+                this.scene.get('ClassicMode').cameras.main.zoom=1.25;
                 this.input.once('pointerdown', ()=>{
                     this.scene.launch('Transition', {
-                        from:'ClassicMode',
-                        to: 'MainMenu'
+                        from:['ClassicMode','UI'],
+                        to: 'MainMenu',
                     });
                 });
                 

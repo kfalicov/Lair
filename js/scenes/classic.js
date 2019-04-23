@@ -101,6 +101,8 @@ export class ClassicMode extends Phaser.Scene {
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
         //this.load.glsl('grayscale', 'js/shader/grayscale.fs');
         this.load.json('abilities', 'assets/config/abilities.json');
+
+        this.load.audio('wasted', 'assets/sounds/classic/wasted.mp3');
     }
 
     destroyLaser(laser){
@@ -427,10 +429,10 @@ export class ClassicMode extends Phaser.Scene {
                             numbereffect.restart();
                             if(countdown && countdown.repeatCount===0){
                                 //LOSE GAME
-                                this.cameras.main.zoom=1.25;
+                                this.sound.play('wasted');
+                                this.cameras.main.zoom=1.10;
                                 this.background.disableInteractive();
                                 losecamera.play();
-                                //scene.room.clearRenderToTexture();
                                 scene.room.resetPipeline();
                                 //scene.room.flipY=true;
                                 scene.cameras.main.setRenderToTexture('Grayscale');
@@ -497,7 +499,7 @@ export class ClassicMode extends Phaser.Scene {
         this.enemies.removeCallback = function(child){
             //checks for active transition, because otherwise it might start the thing twice
             if(this.children.size===0 && !scene.scene.isActive('Transition')){
-                background.disableInteractive();
+                scene.placeMode = false;
                 scene.scene.get('UI').events.emit('Clear', [scene.money, data.difficulty]);
                 scene.enemies.removeCallback = undefined;
             }
@@ -559,6 +561,9 @@ export class ClassicMode extends Phaser.Scene {
                 }
                 if(_b.data.values.captureTime >= requiredCaptureTime){
                     _b.body.enable = false;
+                    //money update has to happen before removal, because removal may
+                    //go to next screen, and this means money will be incorrect
+                    updateMoneyDisplay(this.money+=600);
                     this.enemies.remove(_b);
                     if(_b.corners!==undefined){
                         for(let i=0;i<_b.corners.length;i++){
@@ -566,7 +571,6 @@ export class ClassicMode extends Phaser.Scene {
                         }
                         _b.corners=undefined;
                     }
-                    updateMoneyDisplay(this.money+=600);
                     //TODO play capture animation
                 }
             },null,this);
@@ -665,6 +669,8 @@ export class ClassicMode extends Phaser.Scene {
 
         let deleteMode=false;
         let confuseMode=false;
+        this.placeMode = false;
+        this.events.once('TransitionOver',()=>{this.placeMode=true; this.scene.resume()});
         let mirrorlist=this.mirrors;
         
         this.toggleFunction = function(mode){
@@ -811,7 +817,7 @@ export class ClassicMode extends Phaser.Scene {
                 }
                 this.toggleFunction('confuse');
                 this.scene.get('UI').events.emit('StopConfusing');
-            }else{
+            }else if(this.placeMode){
                 //places the new item
                 let nextItem = nextItemQueue.shift();
                 //updateMoneyDisplay(this.money-=100);
@@ -891,29 +897,10 @@ export class ClassicMode extends Phaser.Scene {
             let grayscalePipeline = this.game.renderer.addPipeline('Grayscale', new GrayscalePipeline(this.game));
         }
         
-        this.input.keyboard.once('keydown_N', function(event){
-            this.scene.launch('Transition', {
-                from:this.scene.key,
-                to: 'ClassicMode',
-                data: {
-                    money: this.money,
-                    difficulty: this.scene.settings.data.difficulty+1
-                }
-            });
-        }, this);
-        this.input.keyboard.once('keydown_Y', () =>{
-            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
-            background.disableInteractive();
-        });
-        
-        this.input.keyboard.once('keydown_P', () =>{
-            this.scene.get('UI').events.emit('Clear', [this.money, data.difficulty]);
-            background.disableInteractive();
-        })
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
             this.scene.launch('Transition', {
-                from:'ClassicMode', 
+                from:['ClassicMode','UI'], 
                 to:'MainMenu'
             });
         }, this);
@@ -979,7 +966,7 @@ export class ClassicMode extends Phaser.Scene {
         this.shadows.fillStyle(0x000000,1);
         shadowImage.setMask(new Phaser.Display.Masks.GeometryMask(this, this.shadows));
         this.shadows.setVisible(false);
-        this.scene.resume();
+        //this.scene.resume();
     }
     update()
     {   
