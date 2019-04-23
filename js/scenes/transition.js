@@ -18,7 +18,7 @@ export class Transition extends Phaser.Scene{
     {
         this.scene.launch('TransitionRender');
         this.scene.setVisible(false);
-        let background = this.add.tileSprite(0, 0, 800, 450, 'menu_white').disableInteractive();
+        let background = this.add.tileSprite(0, 0, 800, 450, 'menu_white').setInteractive();
         background.setOrigin(0, 0);
 
         let c1 = Phaser.Display.Color.HexStringToColor('#70b9ff'); // DAY
@@ -192,6 +192,7 @@ export class Transition extends Phaser.Scene{
         }); */
 
         //this callback is performed as soon as this scene is the only one showing.
+        let pressable=false;
         this.events.once('TransitionOver',()=>{
             if(Array.isArray(data.from)){
                 data.from.forEach(element => {
@@ -206,28 +207,30 @@ export class Transition extends Phaser.Scene{
             activeTween.play();
             this.sound.play('drive');
             this.time.delayedCall(1450, ()=>this.sound.play('screech'));
-            activeTween.setCallback('onComplete',()=>{background.setInteractive()},[],this);    
+            activeTween.setCallback('onComplete',()=>{pressable=true},[],this);    
         });
 
         //when the background is clicked, the next scene is resumed,
         //and the transition out is started
-        background.once('pointerdown', function(){
-            background.disableInteractive();
-            //rendermask.invertAlpha = true;
-            this.scene.resume(data.to);
-            this.scene.get('TransitionRender').events.emit('StartTransition');
-            //and as soon as the transition is complete, do this
-            this.events.once('TransitionOver', ()=>{
-                //console.log('stopped '+this.scene.key);
-                //console.log(data);
-                if(data.hasOwnProperty('data') && data.data.difficulty===0){
-                        this.scene.launch('Dialog', {
-                            text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
-                        });
-                }
-                this.scene.get(data.to).events.emit('TransitionOver');
-                this.scene.stop();
-            }, [], this);
+        background.on('pointerdown', function(){
+            if(pressable){
+                background.disableInteractive();
+                //rendermask.invertAlpha = true;
+                this.scene.resume(data.to);
+                this.scene.get('TransitionRender').events.emit('StartTransition');
+                //and as soon as the transition is complete, do this
+                this.events.once('TransitionOver', ()=>{
+                    //console.log('stopped '+this.scene.key);
+                    //console.log(data);
+                    if(data.hasOwnProperty('data') && data.data.difficulty===0){
+                            this.scene.launch('Dialog', {
+                                text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
+                            });
+                    }
+                    this.scene.get(data.to).events.emit('TransitionOver');
+                    this.scene.stop();
+                }, [], this);
+            }
         }, this); 
     }
     update(){

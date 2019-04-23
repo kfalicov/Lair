@@ -669,8 +669,8 @@ export class ClassicMode extends Phaser.Scene {
 
         let deleteMode=false;
         let confuseMode=false;
-        this.placeMode = false;
-        this.events.once('TransitionOver',()=>{this.placeMode=true; this.scene.resume()});
+        this.placeMode = true;
+        //this.events.once('TransitionOver',()=>{this.placeMode=true; this.scene.resume()});
         let mirrorlist=this.mirrors;
         
         this.toggleFunction = function(mode){
