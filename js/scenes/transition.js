@@ -167,7 +167,7 @@ export class Transition extends Phaser.Scene{
                     ease: 'Back.easeOut'
                 }]
         });
-
+        
         let activeTween = undefined;
         if(data.hasOwnProperty('data') && data.data.difficulty%2==0){
             background.setTint(0x000b1e);
@@ -214,6 +214,7 @@ export class Transition extends Phaser.Scene{
         //and the transition out is started
         background.on('pointerdown', function(){
             if(pressable){
+                this.scene.get('MusicScene').events.emit('PlayTheme');
                 background.disableInteractive();
                 //rendermask.invertAlpha = true;
                 this.scene.resume(data.to);
@@ -223,9 +224,7 @@ export class Transition extends Phaser.Scene{
                     //console.log('stopped '+this.scene.key);
                     //console.log(data);
                     if(data.hasOwnProperty('data') && data.data.difficulty===0){
-                            this.scene.launch('Dialog', {
-                                text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'
-                            });
+                            //this.scene.launch('Dialog', {text:'Hey, boss, heroes have invaded the lair. You gotta do that thing with the laser traps again. You know, the trick where you guide the invaders onto their respective targets?\nLuckily, they always wear the color that symbolizes which traps they can\'t break free from. Oh yeah, and don\'t forget that we\'re on a budget.'});
                     }
                     this.scene.get(data.to).events.emit('TransitionOver');
                     this.scene.stop();
