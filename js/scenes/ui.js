@@ -173,6 +173,7 @@ export class UI extends Phaser.Scene{
         });
 
         this.events.once('Lose', (args)=>{
+            this.scene.get('MusicScene').events.emit('StopTheme');
             flash.setVisible(true);
             flashtween.play();
             for(let i=0;i<buttons.length;i++){
