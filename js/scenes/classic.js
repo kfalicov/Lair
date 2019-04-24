@@ -657,15 +657,6 @@ export class ClassicMode extends Phaser.Scene {
             direction = (direction+3)%4;
             updateDirection(direction);
         }, this);
-        let shader = false;
-        this.input.keyboard.on('keydown_S', ()=>{
-            shader = !shader;
-            if(shader){
-                scene.cameras.main.setRenderToTexture('Grayscale');
-            }
-            else
-                this.cameras.main.clearRenderToTexture();  
-        })
 
         let deleteMode=false;
         let confuseMode=false;
