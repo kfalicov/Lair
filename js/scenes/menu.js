@@ -212,7 +212,7 @@ class MainMenu extends Phaser.Scene {
         let classicbutton = this.add.sprite(100, 275, 'classic_button').setInteractive().setOrigin(0).setVisible(false);
         classicbutton.on('pointerup', ()=>{
             this.input.enabled = false;
-            this.scene.launch('Transition', {
+            this.scene.run('Transition', {
                 from: 'MainMenu',
                 to: 'ClassicMode',
                 data:{

@@ -332,7 +332,7 @@ export class ClassicMode extends Phaser.Scene {
     create(data)
     {       
         //this.scene.setVisible(false, 'ClassicMode');
-        this.scene.launch('UI',data);
+        this.scene.run('UI',data);
         this.scene.pause();
         /**
          * UI STUFF
@@ -438,7 +438,7 @@ export class ClassicMode extends Phaser.Scene {
                                 scene.cameras.main.setRenderToTexture('Grayscale');
                                 number.destroy();
                                 this.scene.stop('Dialog');
-                                this.scene.get('UI').events.emit('Lose');
+                                this.scene.get('UI').events.emit('Lose', [scene.money, data.difficulty]);
                             }else if(countdown){
                                 number.setText(countdown.repeatCount);
                             }
@@ -890,7 +890,7 @@ export class ClassicMode extends Phaser.Scene {
         
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
-            this.scene.launch('Transition', {
+            this.scene.run('Transition', {
                 from:['ClassicMode','UI'], 
                 to:'MainMenu'
             });
