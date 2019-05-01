@@ -8,3 +8,8 @@ assets/images/ui/buttons/
 *.psd
 *.aup
 *.au
+*.asd
+assets/images/classic/walk legs.png
+assets/images/classic/walk arms.png
+assets/images/classic/hero arms.png
+assets/images/classic/hero legs.png

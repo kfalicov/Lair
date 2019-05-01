@@ -13,10 +13,12 @@ export class Transition extends Phaser.Scene{
         this.load.atlas('sunmoon', 'assets/images/menu/sunmoon.png', 'assets/images/menu/sunmoon.json');
         this.load.audio('screech', 'assets/sounds/transition/tire_screech.mp3');
         this.load.audio('drive', 'assets/sounds/transition/drive_away.mp3');
+
+        this.load.atlas('particles', 'assets/images/particle/particles.png', 'assets/images/particle/particles_atlas.json');
     }
     create(data)
     {
-        this.scene.launch('TransitionRender');
+        this.scene.run('TransitionRender');
         this.scene.setVisible(false);
         let background = this.add.tileSprite(0, 0, 800, 450, 'menu_white').setInteractive();
         background.setOrigin(0, 0);
@@ -202,17 +204,30 @@ export class Transition extends Phaser.Scene{
                 this.scene.stop(data.from);
             }
             //console.log('stopped '+data.from);
-
-            this.scene.launch(data.to, data.data);
-            activeTween.play();
-            this.sound.play('drive');
-            this.time.delayedCall(1450, ()=>this.sound.play('screech'));
-            activeTween.setCallback('onComplete',()=>{pressable=true},[],this);    
+            this.scene.run(data.to, data.data);
+            if(data.gameover){
+                let lairArea = new Phaser.Geom.Ellipse(510, 255, 180, 230);
+                this.time.addEvent({
+                    delay: 500,
+                    callback: ()=>{
+                        let point = lairArea.getRandomPoint();
+                        explode(point.x, point.y);
+                        this.scene.get('TransitionRender').events.emit('Shake');
+                    },
+                    repeat:7
+                });
+                pressable = true;
+            }else{
+                activeTween.play();
+                this.sound.play('drive');
+                this.time.delayedCall(1450, ()=>this.sound.play('screech'));
+                activeTween.setCallback('onComplete',()=>{pressable=true},[],this);
+            }    
         });
 
         //when the background is clicked, the next scene is resumed,
         //and the transition out is started
-        background.on('pointerdown', function(){
+        background.on('pointerdown', ()=>{
             if(pressable){
                 this.scene.get('MusicScene').events.emit('PlayTheme');
                 background.disableInteractive();
@@ -231,9 +246,167 @@ export class Transition extends Phaser.Scene{
                 }, [], this);
             }
         }, this); 
+
+        var smokeanim = this.anims.get('smoke');
+        var fireanim = this.anims.get('fire');
+        var debrisanim = this.anims.get('debris');
+        var sparkanim = this.anims.get('spark');
+        if(smokeanim === undefined){
+            smokeanim = this.anims.create({
+                key:'smoke',
+                frames: this.anims.generateFrameNames('particles', {prefix:'particle_', start:96, end:116}),
+                frameRate: 60,
+                repeat:0
+            });
+        }
+        if(fireanim === undefined){
+            fireanim = this.anims.create({
+                key:'fire',
+                frames: this.anims.generateFrameNames('particles', {prefix:'particle_', start:128, end:137}),
+                frameRate: 60,
+                repeat:0
+            });
+        }
+        if(debrisanim === undefined){
+            debrisanim = this.anims.create({
+                key:'debris',
+                frames: this.anims.generateFrameNames('particles', {prefix:'particle_', start:160, end:167}),
+                frameRate: 60,
+                repeat:0
+            });
+        }
+        if(sparkanim === undefined){
+            sparkanim = this.anims.create({
+                key:'spark',
+                frames: this.anims.generateFrameNames('particles', {prefix:'particle_', start:224, end:239}),
+                frameRate: 60,
+                repeat:0
+            });
+        }
+        class AnimatedParticle extends Phaser.GameObjects.Particles.Particle
+        {
+            constructor (emitter, anim)
+            {
+                super(emitter);
+
+                this.t = 0;
+                this.i = 0;
+                this.anim = anim;
+            }
+
+            update (delta, step, processors)
+            {
+                var result = super.update(delta, step, processors);
+
+                this.t += delta;
+
+                if (this.t >= this.life/this.anim.frames.length)
+                {
+                    this.i++;
+
+                    if (this.i > this.anim.frames.length-1)
+                    {
+                        this.i = 0;
+                        if(this.anim.repeat != -1){
+                            return true;
+                        }
+                    }
+                    this.frame = this.anim.frames[this.i].frame;
+
+                    this.t -= this.life/this.anim.frames.length;
+                }
+
+                return result;
+            }
+        }
+        class smokePart extends AnimatedParticle{
+            constructor(emitter){
+                super(emitter, smokeanim);
+            }
+        }
+        class firePart extends AnimatedParticle{
+            constructor(emitter){
+                super(emitter, fireanim);
+            }
+        }
+        class debrisPart extends AnimatedParticle{
+            constructor(emitter){
+                super(emitter, debrisanim);
+            }
+        }
+        class sparkPart extends AnimatedParticle{
+            constructor(emitter){
+                super(emitter, sparkanim);
+            }
+        }
+
+        let particles = this.add.particles('particles');
+        var smokeEmitter = particles.createEmitter({
+            frame: 'particle_96',
+            x:0, y:0,
+            speed: {min:-200, max:200},
+            lifespan: { min: 200, max: 800 },
+            quantity:40,
+            alpha: 0.8,
+            scale: 4,
+            on:false,
+            gravityY: -200,
+            particleClass: smokePart,
+            //blendMode: 'MULTIPLY',
+        });
+        var fireEmitter = particles.createEmitter({
+            frame: 'particle_128',
+            x:0, y:0,
+            speed: {min:-100, max:120},
+            lifespan: { min: 200, max: 500 },
+            quantity:20,
+            scale: 4,
+            on:false,
+            particleClass: firePart,
+            //blendMode: 'ADD',
+        });
+        var debrisEmitter = particles.createEmitter({
+            frame: 'particle_160',
+            x:0, y:0,
+            speed: {min:100, max:400},
+            lifespan: { min: 400, max: 600 },
+            quantity:10,
+            scale: 3,
+            gravityY: 200,
+            on:false,
+            particleClass: debrisPart,
+            //blendMode: 'ADD',
+        });
+        var sparkEmitter = particles.createEmitter({
+            frame: 'particle_224',
+            x:0, y:0,
+            speed: {min:400, max:600},
+            lifespan: { min: 50, max: 300 },
+            quantity:15,
+            scale: 4,
+            on:false,
+            particleClass: sparkPart,
+            //blendMode: 'ADD',
+        });
+
+        function explode(x, y){
+            smokeEmitter.setPosition(x, y);
+            fireEmitter.setPosition(x, y);
+            debrisEmitter.setPosition(x, y);
+            sparkEmitter.setPosition(x, y);
+            //this.debrisRT.clear();
+            //this.debrisRT.setPosition(pointer.x, pointer.y);
+            let angle = Phaser.Math.Angle.Between(x, y, 530, 270)*180/3.14 + 90;
+            smokeEmitter.setAngle({min: angle-40, max: angle+220});
+            debrisEmitter.setAngle({min: angle+40, max: angle+140});
+            smokeEmitter.explode();
+            fireEmitter.explode();
+            debrisEmitter.explode();
+            sparkEmitter.explode();
+        }
     }
     update(){
-        
+
     }
 }
 
@@ -246,10 +419,12 @@ export class TransitionRender extends Phaser.Scene{
         this.load.image('wipe_mask', 'assets/images/effect/wipe_mask.png');
     }
     create(data){
-        this.rt = this.add.renderTexture(0, 0, 800, 600).setVisible(false);
+        this.rt = this.add.renderTexture(-100, -100, 1000, 800).setVisible(false);
 
         this.rt.saveTexture('transitiontexture');
 
+        
+        let black = this.add.tileSprite(400,300,1000,800, 'menu_white').setTint(0x000000).setVisible(false);
         let rendertexture = this.add.image(0,0,'transitiontexture').setOrigin(0,0);
         
         let wipe_mask = this.add.image(800,0,'wipe_mask').setOrigin(0,0);
@@ -264,15 +439,20 @@ export class TransitionRender extends Phaser.Scene{
         });
         //this transitions to the next scene on click
         tween.setCallback('onComplete', ()=>{
+            black.setVisible(true);
             this.scene.get('Transition').events.emit('TransitionOver');
         },[], this);
         this.events.once('StartTransition',()=>{
+            black.setVisible(false);
             rendermask.invertAlpha = true;
             tween.setCallback('onComplete', ()=>{
                 this.scene.get('Transition').events.emit('TransitionOver');
                 this.scene.stop();
             }, [], this);
             tween.restart();
+        });
+        this.events.on('Shake',()=>{
+            this.cameras.main.shake(100, 0.01, true);
         });
     }
     update(){

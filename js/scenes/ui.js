@@ -75,7 +75,7 @@ export class UI extends Phaser.Scene{
                 //console.log(this);
                 //console.log(args);
                 this.input.once('pointerdown', ()=>{
-                    this.scene.launch('Transition', {
+                    this.scene.run('Transition', {
                         from:['ClassicMode','UI'],
                         to: 'ClassicMode',
                         data: {
@@ -173,6 +173,7 @@ export class UI extends Phaser.Scene{
         });
 
         this.events.once('Lose', (args)=>{
+            this.scene.get('MusicScene').events.emit('StopTheme');
             flash.setVisible(true);
             flashtween.play();
             for(let i=0;i<buttons.length;i++){
@@ -182,9 +183,14 @@ export class UI extends Phaser.Scene{
                 loseflag.setVisible(true);
                 this.scene.get('ClassicMode').cameras.main.zoom=1.25;
                 this.input.once('pointerdown', ()=>{
-                    this.scene.launch('Transition', {
+                    this.scene.run('Transition', {
                         from:['ClassicMode','UI'],
                         to: 'MainMenu',
+                        gameover: true,
+                        data: {
+                            money: args[0],
+                            difficulty: args[1]+1
+                        }
                     });
                 });
                 

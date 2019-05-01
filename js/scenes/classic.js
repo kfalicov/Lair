@@ -98,6 +98,8 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('laser_ui', 'assets/images/classic/laser_ui.png');
         this.load.image('mirror_ui', 'assets/images/classic/mirror_ui.png');
 
+        this.load.atlas('hero_walk', 'assets/images/classic/hero_walk.png', 'assets/images/classic/hero_walk_atlas.json');
+        this.load.atlas('hero_head', 'assets/images/classic/hero_head.png', 'assets/images/classic/hero_head_atlas.json');
         this.load.glsl('crt_fragment', 'js/shader/crt2.fs');
         //this.load.glsl('grayscale', 'js/shader/grayscale.fs');
         this.load.json('abilities', 'assets/config/abilities.json');
@@ -313,8 +315,8 @@ export class ClassicMode extends Phaser.Scene {
     }
      //b is hero body, t is target
      cornerCoords(b,t){
-        let bTL = b.getTopLeft();
-        let bBR = b.getBottomRight();
+        let bTL = {x: b.x-b.width/2, y: b.y-b.height/2};
+        let bBR = {x: b.x+b.width/2, y: b.y+b.height/2};
         let tTL = t.getTopLeft();
         let tBR = t.getBottomRight();
         let minX = Math.min(bTL.x, tTL.x);
@@ -332,7 +334,7 @@ export class ClassicMode extends Phaser.Scene {
     create(data)
     {       
         //this.scene.setVisible(false, 'ClassicMode');
-        this.scene.launch('UI',data);
+        this.scene.run('UI',data);
         this.scene.pause();
         /**
          * UI STUFF
@@ -438,7 +440,7 @@ export class ClassicMode extends Phaser.Scene {
                                 scene.cameras.main.setRenderToTexture('Grayscale');
                                 number.destroy();
                                 this.scene.stop('Dialog');
-                                this.scene.get('UI').events.emit('Lose');
+                                this.scene.get('UI').events.emit('Lose', [scene.money, data.difficulty]);
                             }else if(countdown){
                                 number.setText(countdown.repeatCount);
                             }
@@ -520,29 +522,66 @@ export class ClassicMode extends Phaser.Scene {
         }
         //let speedRange = [150,200]
 
+
+        var leganim = this.anims.get('hero_legs');
+        var armanim = this.anims.get('hero_arms');
+        if(leganim === undefined){
+            leganim = this.anims.create({
+                key:'hero_legs',
+                frames: this.anims.generateFrameNames('hero_walk', {prefix:'walk_legs_', start:0, end:16}),
+                frameRate: 64,
+                repeat:-1
+            });
+        }
+        if(armanim === undefined){
+            armanim = this.anims.create({
+                key:'hero_arms',
+                frames: this.anims.generateFrameNames('hero_walk', {prefix:'walk_arms_', start:0, end:16}),
+                frameRate: 64,
+                repeat:-1
+            });
+        }
         
         let angleRange = [20,70];
         let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31, 0xffffff];
         for(var i = 0; i<num_enemies; i++){
-            var b = this.enemies.create(0,0,'info_button');
-            b.setBounce(1,1).setCollideWorldBounds(true);
-            b.setRandomPosition(40+b.displayOriginX+1, 60+b.displayOriginY+1, room.width-(b.width+2),room.height-(b.height+2));
-            b.setDepth(1);
-            b.setTint(colors[i]);
-            b.setData('captureTime',0);
+            var legs = this.add.sprite(0,0,'hero_walk').play('hero_legs');
+            var arms = this.add.sprite(0,0,'hero_walk').play('hero_arms');
+            let headidx = Phaser.Math.Between(0,6);
+            var head = this.add.image(0,0,'hero_head', 'hero_head_'+headidx);
+            let container = this.add.container(0,0,[legs, arms, head]);
+            container.setSize(32,32);
+            this.enemies.add(container);
+            this.physics.world.enable(container);
+            container.body.setBounce(1,1).setCollideWorldBounds(true);
+            container.setRandomPosition(40+container.displayOriginX+1, 60+container.displayOriginY+1, room.width-(container.width+2),room.height-(container.height+2));
+            container.setDepth(1);
+            let color = Phaser.Display.Color.ValueToColor(colors[i]);
+            color.darken(30);
+            legs.setTint(color.color);
+            arms.setTint(colors[i]);
+            container.setData('captureTime',0);
             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
             angle = angle+(90*Phaser.Math.Between(0,3));
             let speed = Phaser.Math.Between(speedRange[0],speedRange[1])+speedmod;
-            b.originalSpeed = speed;
-            this.physics.velocityFromAngle(angle,speed,b.body.velocity);
-            this.physics.add.existing(b);
+            container.originalSpeed = speed;
+            
+            legs.anims.msPerFrame = (69*150)/(speed);
+            arms.anims.msPerFrame = legs.anims.msPerFrame;
+            this.physics.velocityFromAngle(angle,speed,container.body.velocity);
+            
+            //this.physics.add.existing(container);
+            container.body.setSize(32,32);
+            container.angle=angle;
+            
+            container.body.onWorldBounds = true;
 
             let t = this.physics.add.sprite(0,0,'target');
             t.setRandomPosition(40+t.displayOriginX+1, 60+t.displayOriginY+1, room.width-(t.width+2),room.height-(t.height+2));
             t.setDepth(0);
             t.setTint(colors[i]);
-            b.data.values.target = t;
-            this.physics.add.overlap(b,t,function(_b, _t){
+            container.data.values.target = t;
+            this.physics.add.overlap(container,t,function(_b, _t){
                 _b.setData('onTarget',true);
                 _b.data.values.captureTime++;
                 if(_b.data.values.captureTime>=50){
@@ -575,8 +614,14 @@ export class ClassicMode extends Phaser.Scene {
                 }
             },null,this);
         }
-        this.physics.add.collider(this.enemies, this.laserGrid);
-        this.physics.add.collider(this.enemies, this.mirrors);
+        let collidecallback = function(enemybody){
+            enemybody.rotation = enemybody.velocity.angle()*180/3.14;
+        }
+
+        this.physics.world.on('worldbounds', collidecallback);
+
+        this.physics.add.collider(this.enemies, this.laserGrid, (enemy, laser)=>collidecallback(enemy.body));
+        this.physics.add.collider(this.enemies, this.mirrors, (enemy, mirror)=>collidecallback(enemy.body));
         /**
          * END ENEMY PLACEMENT
          */
@@ -890,7 +935,7 @@ export class ClassicMode extends Phaser.Scene {
         
         this.input.keyboard.once('keydown_ESC', function(event){
             this.scene.stop('Dialog');
-            this.scene.launch('Transition', {
+            this.scene.run('Transition', {
                 from:['ClassicMode','UI'], 
                 to:'MainMenu'
             });

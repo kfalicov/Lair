@@ -55,6 +55,11 @@ export class MusicScene extends Phaser.Scene {
             music_intro.stop();
             music_intro.play();
         });
+        this.events.on('StopTheme', ()=>{
+            loopdelay.destroy();
+            music_loop.stop();
+            music_intro.stop();
+        });
     }
     update()
     {

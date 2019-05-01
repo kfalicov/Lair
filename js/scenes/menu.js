@@ -58,8 +58,6 @@ class MainMenu extends Phaser.Scene {
 
         let background = this.add.sprite(0, 0, 'menu_background');
         background.setOrigin(0, 0);
-        
-        
 
         let bg = this.add.tileSprite(400,105,800,210, 'menu_white').setTint('0xff0000').setBlendMode(Phaser.BlendModes.ADD);
         let fg = this.add.tileSprite(400,105, 800, 128,'big_laser_fg').setBlendMode(Phaser.BlendModes.ADD);
@@ -212,7 +210,7 @@ class MainMenu extends Phaser.Scene {
         let classicbutton = this.add.sprite(100, 275, 'classic_button').setInteractive().setOrigin(0).setVisible(false);
         classicbutton.on('pointerup', ()=>{
             this.input.enabled = false;
-            this.scene.launch('Transition', {
+            this.scene.run('Transition', {
                 from: 'MainMenu',
                 to: 'ClassicMode',
                 data:{
