@@ -10,12 +10,13 @@ var directions = {
         //mirror.direction is of the format [in,out]. if a laser comes in from the -out direction
         //it must be redirected back in the -in direction (accomplished using modulo)
         let outputdir = this.NONE;
-        if(mirror.direction[0]===laser.direction){
+        if(mirror.direction[0]===this.NONE && mirror.direction[1]===this.NONE){
+            //do nothing
+        }
+        else if(mirror.direction[0]===laser.direction){
             outputdir = mirror.direction[1];
         }else if((mirror.direction[1]+2)%4===laser.direction){
             outputdir = (mirror.direction[0]+2)%4;
-        }else{
-            //leave outputdir as none to signify that laser is blocked
         }
         //point is originally the center
         let point = {x:mirror.x, y:mirror.y};
@@ -29,7 +30,8 @@ var directions = {
                 point.y=laser.y;
             }
             
-        }else{
+        }else if(   (mirror.direction[0] === this.WEST && mirror.direction[1] === this.SOUTH) || 
+                    (mirror.direction[0] === this.EAST && mirror.direction[1] === this.NORTH)){
             if(laser.direction %2 === 0){
                 point.x=laser.x;
                 point.y+=mirror.x-laser.x; 
@@ -93,6 +95,8 @@ export class ClassicMode extends Phaser.Scene {
         this.load.image('confuse_cursor', 'assets/images/classic/confuse_cursor.png');
 
         this.load.image('target', 'assets/images/classic/target.png');
+        this.load.image('targetsurround', 'assets/images/classic/targetsurround.png');
+        this.load.image('smallcage', 'assets/images/classic/smallcage.png');
         this.load.image('corner', 'assets/images/classic/corner.png');
 
         this.load.image('laser_ui', 'assets/images/classic/laser_ui.png');
@@ -105,6 +109,7 @@ export class ClassicMode extends Phaser.Scene {
         this.load.json('abilities', 'assets/config/abilities.json');
 
         this.load.audio('wasted', 'assets/sounds/classic/wasted.mp3');
+        this.load.audio('trap', 'assets/sounds/classic/trap.mp3');
     }
 
     destroyLaser(laser){
@@ -271,22 +276,35 @@ export class ClassicMode extends Phaser.Scene {
         },this);
         item.incomingLasers = [];
         this.mirrors.add(item);
-        item.body.position = {x:item.x-13, y:item.y-14}
-        item.body.height = 27;
-        item.body.width = 27;
         
         //make sure directions in/out are ordered clockwise
+        let tl = item.getTopLeft();
+        let br = item.getBottomRight();
+        item.corners = [{x: tl.x, y: tl.y},
+                        {x: br.x, y: tl.y},
+                        {x: br.x, y: br.y},
+                        {x: tl.x, y: br.y}];
+        item.body.position = {x:tl.x+3, y:tl.y+2}
+        item.body.height = item.height-4;
+        item.body.width = item.width-5;
         if(type===0){
             item.direction = [directions.SOUTH, directions.EAST];
+            item.corners.splice(1,1);
         }else if(type===1){
             item.direction = [directions.WEST, directions.SOUTH];
+            item.corners.splice(2,1);
             item.angle=90; 
         }else if(type===2){
-            item.direction = [directions.NORTH, directions.WEST]; 
+            item.direction = [directions.NORTH, directions.WEST];
+            item.corners.splice(3,1); 
             item.angle = 180;
         }else if(type===3){
-            item.direction = [directions.EAST, directions.NORTH]; 
+            item.direction = [directions.EAST, directions.NORTH];
+            item.corners.splice(0,1); 
             item.angle = 270;
+        }else{
+            //item has no direction
+            item.direction = [directions.NONE, directions.NONE];
         }
         
         this.physics.world.overlap(this.laserGrid, item, function(mirror, laser){
@@ -541,13 +559,81 @@ export class ClassicMode extends Phaser.Scene {
                 repeat:-1
             });
         }
+
+        var smokeanim = this.anims.get('smoke');
+        if(smokeanim === undefined){
+            smokeanim = this.anims.create({
+                key:'smoke',
+                frames: this.anims.generateFrameNames('particles', {prefix:'particle_', start:96, end:116}),
+                frameRate: 60,
+                repeat:0
+            });
+        }
+
+        class AnimatedParticle extends Phaser.GameObjects.Particles.Particle
+        {
+            constructor (emitter, anim)
+            {
+                super(emitter);
+
+                this.t = 0;
+                this.i = 0;
+                this.anim = anim;
+            }
+
+            update (delta, step, processors)
+            {
+                var result = super.update(delta, step, processors);
+
+                this.t += delta;
+
+                if (this.t >= this.life/this.anim.frames.length)
+                {
+                    this.i++;
+
+                    if (this.i > this.anim.frames.length-1)
+                    {
+                        this.i = 0;
+                        if(this.anim.repeat != -1){
+                            return true;
+                        }
+                    }
+                    this.frame = this.anim.frames[this.i].frame;
+
+                    this.t -= this.life/this.anim.frames.length;
+                }
+
+                return result;
+            }
+        }
+        class smokePart extends AnimatedParticle{
+            constructor(emitter){
+                super(emitter, smokeanim);
+            }
+        }
+
+        let particles = this.add.particles('particles');
+        var smokeEmitter = particles.createEmitter({
+            frame: 'particle_96',
+            x:0, y:0,
+            speed: {min:200, max:400},
+            lifespan: { min: 200, max: 300 },
+            quantity:40,
+            alpha: {start: 0.6, end:0.1},
+            scale: 4,
+            on:false,
+            particleClass: smokePart,
+            //blendMode: 'MULTIPLY',
+        });
         
+        let trapSound = this.sound.add('trap', {volume:0.3});
+
         let angleRange = [20,70];
         let colors = [0xe03131, 0x31e04b, 0x498bf4, 0xe07731, 0x9431e0, 0xe0cb31, 0xffffff];
         for(var i = 0; i<num_enemies; i++){
             var legs = this.add.sprite(0,0,'hero_walk').play('hero_legs');
             var arms = this.add.sprite(0,0,'hero_walk').play('hero_arms');
-            let headidx = Phaser.Math.Between(0,6);
+            let headidx = Phaser.Math.Between(0,8);
             var head = this.add.image(0,0,'hero_head', 'hero_head_'+headidx);
             let container = this.add.container(0,0,[legs, arms, head]);
             container.setSize(32,32);
@@ -576,10 +662,11 @@ export class ClassicMode extends Phaser.Scene {
             
             container.body.onWorldBounds = true;
 
-            let t = this.physics.add.sprite(0,0,'target');
+            let t = this.physics.add.image(0,0,'target');
             t.setRandomPosition(40+t.displayOriginX+1, 60+t.displayOriginY+1, room.width-(t.width+2),room.height-(t.height+2));
             t.setDepth(0);
             t.setTint(colors[i]);
+            this.add.image(t.x,t.y,'targetsurround').setDepth(0);
             container.data.values.target = t;
             this.physics.add.overlap(container,t,function(_b, _t){
                 _b.setData('onTarget',true);
@@ -599,6 +686,18 @@ export class ClassicMode extends Phaser.Scene {
                     }
                 }
                 if(_b.data.values.captureTime >= requiredCaptureTime){
+                    
+                    smokeEmitter.setPosition(_t.x, _t.y);
+                    _b.setPosition(_t.x, _t.y);
+                    _b.each((part)=>{
+                        console.log(part);
+                        if(part.type==="Sprite"){
+                            part.anims.stop();
+                        }
+                        
+                    });
+                    smokeEmitter.explode();
+                    trapSound.play();
                     _b.body.enable = false;
                     //money update has to happen before removal, because removal may
                     //go to next screen, and this means money will be incorrect
@@ -610,6 +709,8 @@ export class ClassicMode extends Phaser.Scene {
                         }
                         _b.corners=undefined;
                     }
+                    //_b.destroy();
+                    this.makeItem(this.room, {x:_t.x, y:_t.y}, 'smallcage', -1);
                     //TODO play capture animation
                 }
             },null,this);
@@ -940,6 +1041,7 @@ export class ClassicMode extends Phaser.Scene {
                 to:'MainMenu'
             });
         }, this);
+
         //pipelines can be used on individual images or sprites
         //room.setPipeline('CRT');
         //this.cameras.main.setRenderToTexture();
@@ -1009,14 +1111,7 @@ export class ClassicMode extends Phaser.Scene {
         var pointer = this.input.activePointer;
         this.shadows.clear();
         this.mirrors.children.each(function(mirror){
-            var corners = [
-                new Phaser.Geom.Point(mirror.getBottomRight().x, mirror.getTopLeft().y),
-                new Phaser.Geom.Point(mirror.getBottomRight().x, mirror.getBottomRight().y),
-                new Phaser.Geom.Point(mirror.getTopLeft().x, mirror.getBottomRight().y),
-                new Phaser.Geom.Point(mirror.getTopLeft().x, mirror.getTopLeft().y)
-            ];
-            let mod = mirror.direction[0]%2==0? 1 : -1;
-            corners.splice((mirror.direction[0]-mirror.direction[1]-mod),1);
+            var corners = mirror.corners;
             let rays = [];
             for(let i=0;i<corners.length;i++){
                 let c = corners[i];

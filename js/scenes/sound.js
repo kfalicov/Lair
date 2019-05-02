@@ -60,6 +60,10 @@ export class MusicScene extends Phaser.Scene {
             music_loop.stop();
             music_intro.stop();
         });
+        //let mute = false;
+        this.input.keyboard.on('keydown_M', function(event){
+            this.sound.mute = !this.sound.mute;
+        }, this);
     }
     update()
     {
