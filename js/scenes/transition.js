@@ -23,6 +23,11 @@ export class Transition extends Phaser.Scene{
     {
         this.scene.run('TransitionRender');
         this.scene.setVisible(false);
+        
+        this.sound.removeByKey('explode');
+        this.sound.removeByKey('screech');
+        this.sound.removeByKey('drive');
+
         let background = this.add.tileSprite(0, 0, 800, 450, 'menu_white').setInteractive();
         background.setOrigin(0, 0);
 
@@ -411,7 +416,6 @@ export class Transition extends Phaser.Scene{
             particleClass: sparkPart,
             //blendMode: 'ADD',
         });
-
         let explosionsound = this.sound.add('explode',{volume:0.7, rate:1.5});
         function explode(x, y){
             smokeEmitter.setPosition(x, y);
