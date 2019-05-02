@@ -354,6 +354,10 @@ export class ClassicMode extends Phaser.Scene {
         //this.scene.setVisible(false, 'ClassicMode');
         this.scene.run('UI',data);
         this.scene.pause();
+        
+        //necessary because otherwise the soundManager adds duplicates, and calling
+        //'play' plays all of them
+        this.sound.removeByKey('trap');
         /**
          * UI STUFF
          */
@@ -690,7 +694,6 @@ export class ClassicMode extends Phaser.Scene {
                     smokeEmitter.setPosition(_t.x, _t.y);
                     _b.setPosition(_t.x, _t.y);
                     _b.each((part)=>{
-                        console.log(part);
                         if(part.type==="Sprite"){
                             part.anims.stop();
                         }
