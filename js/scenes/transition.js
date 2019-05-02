@@ -7,14 +7,17 @@ export class Transition extends Phaser.Scene{
     preload()
     {
         this.load.image('lair_view', 'assets/images/menu/lair_view.png');
+        this.load.image('lair_shadow', 'assets/images/menu/lair_shadow.png');
         this.load.image('wipe_mask', 'assets/images/effect/wipe_mask.png');
         this.load.image('menu_white', 'assets/images/menu/menu_white.png');
 
         this.load.atlas('sunmoon', 'assets/images/menu/sunmoon.png', 'assets/images/menu/sunmoon.json');
         this.load.audio('screech', 'assets/sounds/transition/tire_screech.mp3');
         this.load.audio('drive', 'assets/sounds/transition/drive_away.mp3');
+        this.load.audio('explode', 'assets/sounds/transition/explode.mp3');
 
         this.load.atlas('particles', 'assets/images/particle/particles.png', 'assets/images/particle/particles_atlas.json');
+    
     }
     create(data)
     {
@@ -33,6 +36,9 @@ export class Transition extends Phaser.Scene{
         let moon = this.add.sprite(200,500, 'sunmoon', 'moon');
 
         let lair = this.add.image(0,0,'lair_view').setOrigin(0);
+        let shadow = this.add.image(0,600, 'lair_shadow').setOrigin(0,1);
+        shadow.setAlpha(0.7);
+        shadow.setBlendMode(Phaser.BlendModes.MULTIPLY);
 
         let sundownHorizon = this.tweens.addCounter({
             paused:true,
@@ -129,10 +135,23 @@ export class Transition extends Phaser.Scene{
                 background.tintTopRight = colInt;
             },
         });
+        let darken = this.tweens.add({
+            targets:[shadow],
+            alpha:{getStart:()=>0, getEnd:()=>0.7},
+            duration:1000,
+            paused:true,
+        });
+        let lighten = this.tweens.add({
+            targets:[shadow],
+            alpha:{getStart:()=>0.7, getEnd:()=>0},
+            duration:1000,
+            paused:true,
+        });
         let daytonight = this.tweens.timeline({
             onStart: ()=>{
                 sundownHorizon.play();
                 sundownSky.play();
+                darken.play();
             },
             paused:true,
             tweens:[{
@@ -153,6 +172,7 @@ export class Transition extends Phaser.Scene{
             onStart: ()=>{
                 sunupHorizon.play();
                 sunupSky.play();
+                lighten.play();
             },
             paused:true,
             tweens:[{
@@ -173,10 +193,12 @@ export class Transition extends Phaser.Scene{
         let activeTween = undefined;
         if(data.hasOwnProperty('data') && data.data.difficulty%2==0){
             background.setTint(0x000b1e);
+            shadow.alpha=0.7;
             activeTween = nighttoday;
             moon.y=100;
         }else{
             background.setTint(0x70b9ff);
+            shadow.alpha=0;
             activeTween = daytonight;
             sun.y=100;
         }
@@ -352,6 +374,7 @@ export class Transition extends Phaser.Scene{
             on:false,
             gravityY: -200,
             particleClass: smokePart,
+            tint: 0x323232
             //blendMode: 'MULTIPLY',
         });
         var fireEmitter = particles.createEmitter({
@@ -389,6 +412,7 @@ export class Transition extends Phaser.Scene{
             //blendMode: 'ADD',
         });
 
+        let explosionsound = this.sound.add('explode',{volume:0.7, rate:1.5});
         function explode(x, y){
             smokeEmitter.setPosition(x, y);
             fireEmitter.setPosition(x, y);
@@ -403,6 +427,7 @@ export class Transition extends Phaser.Scene{
             fireEmitter.explode();
             debrisEmitter.explode();
             sparkEmitter.explode();
+            explosionsound.play();
         }
     }
     update(){
