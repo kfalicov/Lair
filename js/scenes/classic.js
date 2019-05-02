@@ -949,6 +949,10 @@ export class ClassicMode extends Phaser.Scene {
                             let angle = Phaser.Math.Between(angleRange[0],angleRange[1]);
                             angle = angle+(90*Phaser.Math.Between(0,3));
                             this.physics.velocityFromAngle(angle,enemy.originalSpeed,enemy.body.velocity);
+                            enemy.body.rotation=angle;
+                            enemy.body.postUpdate();
+                            console.log(enemy.body);
+
                         },this);
                     }
                 }, this);
